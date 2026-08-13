@@ -295,14 +295,16 @@ def predict_forecast(
     merged = weather_df.merge(tide_df, on="dt", how="left")
     merged["tide_cm"] = merged["tide_cm"].ffill().fillna(100.0)
 
+    # 배치 전체가 같은 generated_at을 갖도록 한 번만 찍는다.
+    # (행마다 now()를 부르면 값이 미세하게 달라져 배치 단위 정리가 불가능해진다)
+    batch_ts = datetime.now(timezone.utc).isoformat()
+
     rows = []
+    # 모든 측정소에 Track A + Track B 둘 다 적용 (ml_pipeline.py 실시간 예측과 동일)
+    # 하천별 주 트랙만 내보내면 프론트 팝업에서 한쪽 위험도가 비어 보인다.
     for loc, base in current.items():
-        track  = "A" if loc in TRACK_A_LOCS else "B"
         river  = LOC_RIVER.get(loc, "unknown")
         lat, lng = LOC_COORDS.get(loc, (35.17, 129.05))
-        pkg = pkg_a if track == "A" else pkg_b
-        feat_names = pkg["features"]
-        model = pkg["model"]
 
         cumulative_rain = 0.0
         prev_date = None
@@ -346,27 +348,33 @@ def predict_forecast(
                 month=dt_kst.month,
             )
 
-            X = pd.DataFrame([{f: feat.get(f, np.nan) for f in feat_names}])
-            X = X.apply(pd.to_numeric, errors="coerce").fillna(0.0)
+            # 피처는 시점당 한 번만 만들고 두 모델이 각자 필요한 컬럼만 골라 쓴다
+            # (Track A는 DO, Track B는 tide_mean_cm 사용 등 피처 집합이 다름)
+            for track, pkg in (("A", pkg_a), ("B", pkg_b)):
+                feat_names = pkg["features"]
+                model = pkg["model"]
 
-            prob = float(model.predict_proba(X)[0, 1])
-            level = "high" if prob >= 0.66 else "medium" if prob >= 0.33 else "low"
+                X = pd.DataFrame([{f: feat.get(f, np.nan) for f in feat_names}])
+                X = X.apply(pd.to_numeric, errors="coerce").fillna(0.0)
 
-            rows.append({
-                "station_id":  f"{river}-{loc}",
-                "river_name":  river,
-                "track":       track,
-                "forecast_dt": dt_utc.isoformat(),
-                "hours_ahead": i + 1,
-                "risk_score":  round(prob, 3),
-                "risk_level":  level,
-                "rain_mm":     round(cumulative_rain, 1),
-                "tide_cm":     round(float(wx_row["tide_cm"]), 1),
-                "temp_c":      round(float(wx_row["temp_c"] or 25.0), 1),
-                "generated_at": datetime.now(timezone.utc).isoformat(),
-            })
+                prob = float(model.predict_proba(X)[0, 1])
+                level = "high" if prob >= 0.66 else "medium" if prob >= 0.33 else "low"
 
-    print(f"[예측] {len(rows)}건 생성 ({len(current)}개 측정소 × {hours}시간)")
+                rows.append({
+                    "station_id":  f"{river}-{loc}",
+                    "river_name":  river,
+                    "track":       track,
+                    "forecast_dt": dt_utc.isoformat(),
+                    "hours_ahead": i + 1,
+                    "risk_score":  round(prob, 3),
+                    "risk_level":  level,
+                    "rain_mm":     round(cumulative_rain, 1),
+                    "tide_cm":     round(float(wx_row["tide_cm"]), 1),
+                    "temp_c":      round(float(wx_row["temp_c"] or 25.0), 1),
+                    "generated_at": batch_ts,
+                })
+
+    print(f"[예측] {len(rows)}건 생성 ({len(current)}개 측정소 × 2트랙 × {hours}시간)")
     return rows
 
 
@@ -393,6 +401,16 @@ def push_to_supabase(rows: list[dict]):
         ).execute()
     print(f"[Supabase] risk_forecast upsert 완료: {len(rows)}건")
 
+    # 이전 배치 잔여 행 정리.
+    # upsert 키가 (station_id, track, forecast_dt)이므로 재실행 시각이 밀리면
+    # 예보 시간대가 이동해 옛 행이 덮이지 않고 남는다. 그 행들은 hours_ahead가
+    # 겹쳐 프론트에서 같은 측정소가 중복 조회되는 원인이 된다.
+    if rows:
+        batch_ts = rows[0]["generated_at"]
+        res = sb.table("risk_forecast").delete().lt("generated_at", batch_ts).execute()
+        removed = len(res.data or [])
+        print(f"[Supabase] 이전 배치 잔여 행 정리: {removed}건 삭제")
+
 
 # ─────────────────────────────────────────────────────
 # main
@@ -409,25 +427,22 @@ def main():
     rows    = predict_forecast(weather, tide, args.hours)
     push_to_supabase(rows)
 
-    # 요약 출력
+    # 요약 출력 — 모든 하천이 A/B 두 트랙을 모두 가지므로 트랙별로 전체 집계
     df = pd.DataFrame(rows)
-    print("\n[예측 요약] 온천천 (Track A, 대장균 위험도)")
-    a = df[df["track"] == "A"].groupby("hours_ahead").agg(
-        mean_score=("risk_score", "mean"),
-        max_score=("risk_score", "max"),
-    ).reset_index()
-    for _, r in a[a["hours_ahead"].isin([6, 12, 24, 48])].iterrows():
-        level = "HIGH" if r["max_score"] >= 0.66 else "MED" if r["max_score"] >= 0.33 else "LOW"
-        print(f"  +{int(r['hours_ahead']):2d}h: 평균 {r['mean_score']:.0%}  최고 {r['max_score']:.0%}  [{level}]")
+    for track, label in (("A", "대장균 위험도"), ("B", "폐사 위험도")):
+        print(f"\n[예측 요약] 전 하천 (Track {track}, {label})")
+        sub = df[df["track"] == track].groupby("hours_ahead").agg(
+            mean_score=("risk_score", "mean"),
+            max_score=("risk_score", "max"),
+        ).reset_index()
+        for _, r in sub[sub["hours_ahead"].isin([6, 12, 24, 48])].iterrows():
+            level = "HIGH" if r["max_score"] >= 0.66 else "MED" if r["max_score"] >= 0.33 else "LOW"
+            print(f"  +{int(r['hours_ahead']):2d}h: 평균 {r['mean_score']:.0%}  최고 {r['max_score']:.0%}  [{level}]")
 
-    print("\n[예측 요약] 동천·괴정천 (Track B, 폐사 위험도)")
-    b = df[df["track"] == "B"].groupby("hours_ahead").agg(
-        mean_score=("risk_score", "mean"),
-        max_score=("risk_score", "max"),
-    ).reset_index()
-    for _, r in b[b["hours_ahead"].isin([6, 12, 24, 48])].iterrows():
-        level = "HIGH" if r["max_score"] >= 0.66 else "MED" if r["max_score"] >= 0.33 else "LOW"
-        print(f"  +{int(r['hours_ahead']):2d}h: 평균 {r['mean_score']:.0%}  최고 {r['max_score']:.0%}  [{level}]")
+    # 하천별 트랙 커버리지 확인 (A/B 둘 다 나오는지 검증)
+    print("\n[커버리지] 하천별 트랙")
+    cov = df.groupby(["river_name", "track"])["station_id"].nunique().unstack(fill_value=0)
+    print(cov.to_string())
 
     print("\n[DONE] 예측 완료")
 

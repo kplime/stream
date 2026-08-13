@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { RISK_COLORS } from '../lib/mapStyle'
 import { useForecast } from '../hooks/useForecast'
-import { RIVER_NAMES, TRACK_LABELS } from '../types/risk'
+import { RIVER_NAMES, RIVER_PRIMARY_TRACK, TRACK_LABELS } from '../types/risk'
 
 const HOURS = [6, 12, 24, 48] as const
 const HOUR_LABELS: Record<number, string> = { 6: '6시간 후', 12: '12시간 후', 24: '24시간 후', 48: '48시간 후' }
@@ -17,7 +17,13 @@ export function ForecastPanel() {
     for (const river of RIVER_NAMES) {
       result[river] = {}
       for (const h of HOURS) {
-        const pts = forecast.filter((f) => f.river_name === river && f.hours_ahead === h)
+        // 이제 모든 하천이 A/B 두 트랙을 다 가지므로, 요약 셀은 하천의 주 트랙만 집계한다.
+        // (트랙을 섞어 최댓값을 내면 지도 하천 색상과 기준이 어긋난다.
+        //  A/B 동시 비교는 셀 클릭 시 상세 패널에서 제공)
+        const primary = RIVER_PRIMARY_TRACK[river]
+        const pts = forecast.filter(
+          (f) => f.river_name === river && f.hours_ahead === h && f.track === primary,
+        )
         if (!pts.length) continue
         const maxPt = pts.reduce((a, b) => (a.risk_score > b.risk_score ? a : b))
         result[river][h] = { score: maxPt.risk_score, level: maxPt.risk_level, rain: maxPt.rain_mm, tide: maxPt.tide_cm, temp: maxPt.temp_c }
