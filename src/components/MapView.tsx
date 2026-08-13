@@ -50,20 +50,23 @@ function buildShapHtml(shapRaw: string | null | undefined, track: 'A' | 'B'): st
   const maxAbs = sorted[0]?.abs ?? 1
   const label = TRACK_LABELS[track]
   const rows = sorted.map(({ key, val, abs }) => {
+    // 막대 길이만 데이터에 따라 달라지므로 그것만 인라인으로 둔다
     const pct = Math.round((abs / maxAbs) * 100)
-    const color = val > 0 ? '#d03b3b' : '#0ca30c'
+    const dir = val > 0 ? 'up' : 'down'
     const sign = val > 0 ? '▲' : '▼'
     const name = SHAP_LABELS[key] ?? key
-    return `<div style="display:flex;align-items:center;gap:6px;margin:3px 0">
-      <span style="font-size:10px;color:${color};width:12px">${sign}</span>
-      <span style="font-size:11px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
-      <div style="width:${pct}px;max-width:80px;height:6px;background:${color};border-radius:3px;opacity:0.75"></div>
-      <span style="font-size:10px;color:#888;width:36px;text-align:right">${val > 0 ? '+' : ''}${val.toFixed(3)}</span>
+    return `<div class="wq-shap__row">
+      <span class="wq-shap__sign wq-shap__sign--${dir}">${sign}</span>
+      <span class="wq-shap__name">${name}</span>
+      <span class="wq-shap__track">
+        <span class="wq-shap__bar wq-shap__bar--${dir}" style="width:${pct}%"></span>
+      </span>
+      <span class="wq-shap__val">${val > 0 ? '+' : ''}${val.toFixed(3)}</span>
     </div>`
   }).join('')
 
-  return `<div style="margin-top:8px;border-top:1px solid #eee;padding-top:6px">
-    <div style="font-size:11px;font-weight:700;color:#555;margin-bottom:4px">${label} 판단 요소</div>
+  return `<div class="wq-shap">
+    <div class="wq-shap__title">${label} 판단 요소</div>
     ${rows}
   </div>`
 }
@@ -91,11 +94,9 @@ function buildPopupHtml(
   const liveA = shapSource.find((s) => s.track === 'A')
   const liveB = shapSource.find((s) => s.track === 'B')
 
-  const riskBadge = (level: string, pct: number) => {
-    const colors: Record<string, string> = { high: '#d03b3b', medium: '#fab219', low: '#0ca30c' }
-    const c = colors[level] ?? '#888'
-    return `<span style="background:${c};color:#fff;padding:1px 6px;border-radius:4px;font-size:11px;font-weight:700">${pct}%</span>`
-  }
+  // 위험도 배지는 상태 표시라 유리 톤에 묻히지 않도록 채도를 유지한다
+  const riskBadge = (level: string, pct: number) =>
+    `<span class="wq-badge wq-badge--${level}">${pct}%</span>`
 
   // updated_at이 미래면 예보 시점을 보고 있는 것
   const isForecast = (() => {
@@ -142,24 +143,23 @@ function buildPopupHtml(
   // event.stopPropagation(): 클릭이 지도 컨테이너로 전파되면 handleMapClick이
   // 팝업을 지우고 다시 만들어버리므로 반드시 막아야 한다.
   const trackerBtn = showTrackerBtn
-    ? `<button
-        onclick="event.stopPropagation();window.__tracePollution('${stationId}', '${riverName}')"
-        style="margin-top:10px;width:100%;padding:5px 10px;background:#1d4ed8;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">
+    ? `<button class="wq-trace-btn"
+        onclick="event.stopPropagation();window.__tracePollution('${stationId}', '${riverName}')">
         🔍 오염원 역추적
       </button>`
     : ''
 
-  return `<div style="font-family:system-ui,sans-serif;font-size:13px;line-height:1.5;color:#1a1a1a;min-width:220px;max-width:280px">
-    <div style="font-weight:700;font-size:14px;margin-bottom:6px">${stationId}</div>
-    <div style="color:#666;font-size:11px;margin-bottom:8px">${riverName} · ${timeStr}</div>
+  return `<div class="wq-popup">
+    <div class="wq-popup__station">${stationId}</div>
+    <div class="wq-popup__meta">${riverName} · ${timeStr}</div>
 
-    <div style="display:flex;flex-direction:column;gap:6px">
-      ${scoreA ? `<div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:11px;color:#555;width:80px">🦠 대장균위험</span>
+    <div class="wq-popup__risks">
+      ${scoreA ? `<div class="wq-popup__risk-row">
+        <span class="wq-popup__risk-label">🦠 대장균위험</span>
         ${riskBadge(scoreA.risk_level, Math.round(scoreA.risk_score * 100))}
       </div>` : ''}
-      ${scoreB ? `<div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:11px;color:#555;width:80px">🐟 폐사위험</span>
+      ${scoreB ? `<div class="wq-popup__risk-row">
+        <span class="wq-popup__risk-label">🐟 폐사위험</span>
         ${riskBadge(scoreB.risk_level, Math.round(scoreB.risk_score * 100))}
       </div>` : ''}
     </div>
@@ -167,9 +167,7 @@ function buildPopupHtml(
     ${buildShapHtml(shapA, 'A')}
     ${buildShapHtml(shapB, 'B')}
     ${isForecast && shapIsFallback
-      ? `<div style="margin-top:8px;font-size:10px;color:#999;line-height:1.4">
-           ※ 판단 요소는 현재 실측 기준입니다 (예보 시점별 SHAP 미저장)
-         </div>`
+      ? `<div class="wq-popup__note">※ 판단 요소는 현재 실측 기준입니다 (예보 시점별 SHAP 미저장)</div>`
       : ''}
     ${trackerBtn}
   </div>`
@@ -596,6 +594,9 @@ export function MapView() {
       anchor: 'bottom',
       offset: [0, -14],
       maxWidth: '300px',
+      // 전용 클래스로 특이도를 확보한다. maplibre-gl.css가 번들에서 App.css보다
+      // 뒤에 실려서, 같은 특이도로는 배경(#fff)·모서리·패딩이 기본값으로 덮인다.
+      className: 'wq-map-popup',
     })
       .setLngLat([s.lng, s.lat])
       .setHTML(buildPopupHtml(s.station_id, allScores, liveScoresRef.current))
