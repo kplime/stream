@@ -11,19 +11,25 @@ export const STATION_LAYER_ID = 'risk-stations'
 export const RIVER_SOURCE_ID = 'risk-rivers'
 export const STATION_SOURCE_ID = 'risk-station-points'
 
-// Busan, centered roughly between the three target rivers.
+// Busan, centered at Oncheoncheon water park where the 3D avatar & stations are located.
 export const INITIAL_VIEW = {
-  center: [129.055, 35.17] as [number, number],
-  zoom: 11.5,
-  pitch: 55,
+  center: [129.0835, 35.2045] as [number, number],
+  zoom: 13.5,
+  pitch: 45,
   bearing: -12,
 }
+
+// 부산 3대 도심하천(온천천·동천·괴정천) 밀집 권역 보수적 Bounding Box (SW, NE)
+export const BUSAN_MAX_BOUNDS: [[number, number], [number, number]] = [
+  [128.92, 35.04],
+  [129.16, 35.26],
+]
 
 // Status palette (dataviz skill): good/warning/critical steps, validated for
 // >=3:1 contrast on a dark surface.
 export const RISK_COLORS: Record<'low' | 'medium' | 'high' | 'unknown', string> = {
   low: '#0ca30c',
-  medium: '#fab219',
+  medium: '#3b82f6',
   high: '#d03b3b',
   unknown: '#5b5a55',
 }

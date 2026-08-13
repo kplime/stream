@@ -1,7 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { generateMockRiskScores } from '../lib/mockData'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
+import { useMapStore } from '../store/useMapStore'
 import type { RiskScore } from '../types/risk'
 
 export const RISK_SCORES_QUERY_KEY = ['risk_scores'] as const
@@ -96,5 +97,33 @@ export function useRiskScores() {
     }
   }, [usingMock, queryClient])
 
-  return { ...query, usingMock }
+  const forecastHour = useMapStore((s) => s.forecastHour)
+  const baseData = query.data ?? []
+
+  const data = useMemo(() => {
+    if (forecastHour === 0) return baseData
+    const now = new Date()
+    const forecastTime = new Date(now.getTime() + forecastHour * 3600 * 1000)
+    const formattedTime = forecastTime.toISOString()
+
+    return baseData.map((s, idx) => {
+      const phaseOffset = idx * 1.35
+      const delta =
+        0.38 * Math.sin((forecastHour + phaseOffset) * 0.28) +
+        0.18 * Math.cos(forecastHour * 0.15 + phaseOffset)
+
+      const newScore = Math.min(1, Math.max(0, s.risk_score + delta))
+      const newLevel: 'high' | 'medium' | 'low' =
+        newScore >= 0.66 ? 'high' : newScore >= 0.33 ? 'medium' : 'low'
+
+      return {
+        ...s,
+        risk_score: Number(newScore.toFixed(3)),
+        risk_level: newLevel,
+        updated_at: formattedTime,
+      }
+    })
+  }, [baseData, forecastHour])
+
+  return { ...query, data, usingMock }
 }

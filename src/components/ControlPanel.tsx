@@ -3,6 +3,7 @@ import { useRiskScores } from '../hooks/useRiskScores'
 import { useMapStore } from '../store/useMapStore'
 import { RIVER_NAMES, RISK_LEVEL_ORDER, TRACK_LABELS, type Track } from '../types/risk'
 import { RISK_COLORS } from '../lib/mapStyle'
+import { CandidatePledgeBanner } from './CandidatePledgeBanner'
 
 const TRACKS: Track[] = ['A', 'B']
 
@@ -15,8 +16,15 @@ export function ControlPanel() {
   const toggleShow3dBuildings = useMapStore((s) => s.toggleShow3dBuildings)
   const flyTo = useMapStore((s) => s.flyTo)
   const selectStation = useMapStore((s) => s.selectStation)
+  const userLocation = useMapStore((s) => s.userLocation)
 
   const { data: scores, usingMock } = useRiskScores()
+
+  const handleLocateUser = () => {
+    const loc = userLocation ?? { lng: 129.0835, lat: 35.2045, heading: 45 }
+    flyTo({ lng: loc.lng, lat: loc.lat, zoom: 16.0 })
+  }
+
 
   const stationsByRiver = useMemo(() => {
     const filtered = (scores ?? []).filter((s) => s.track === track)
@@ -32,11 +40,30 @@ export function ControlPanel() {
   return (
     <aside className="control-panel">
       <header className="control-panel__header">
-        <h1>부산 도심하천 수질예보</h1>
+        <div>
+          <h1>부산 도심하천 수질예보</h1>
+          <p className="control-panel__subtitle-text">온천천 · 동천 · 괴정천 실시간 위험도 예측</p>
+        </div>
         <span className={`status-pill ${usingMock ? 'status-pill--mock' : 'status-pill--live'}`}>
           {usingMock ? '데모 모드 (Mock)' : '실시간 연동'}
         </span>
       </header>
+
+      <div className="control-panel__banner-wrapper">
+        <CandidatePledgeBanner />
+        <div className="control-panel__btn-row">
+          <button
+            type="button"
+            className="locate-me-btn"
+            onClick={handleLocateUser}
+            title="현재 내 실시간 GPS 위치로 확대 이동"
+          >
+            📍 내 위치로 확대 이동
+          </button>
+        </div>
+      </div>
+
+
 
       <section className="control-section">
         <h2>예측 트랙</h2>
@@ -75,7 +102,7 @@ export function ControlPanel() {
       </section>
 
       <section className="control-section control-section--grow">
-        <h2>측정소</h2>
+        <h2>측정소 목록 (클릭시 SHAP 원인분석)</h2>
         <div className="station-list">
           {RIVER_NAMES.filter((r) => visibleRivers.has(r)).map((river) => (
             <div key={river} className="station-list__group">
@@ -94,7 +121,11 @@ export function ControlPanel() {
                     className="station-row__dot"
                     style={{ background: RISK_COLORS[s.risk_level] }}
                   />
-                  <span className="station-row__id">{s.station_id}</span>
+                  <span className="station-row__id">
+                    {s.station_id}
+                    {s.sensor_missing && <span className="badge-missing" title="자동측정망 미설치 (BOD 추정)">⚠️</span>}
+                    {s.anomaly_detected && <span className="badge-anomaly" title="Isolation Forest 이상 탐지">🚨</span>}
+                  </span>
                   <span className="station-row__score">{Math.round(s.risk_score * 100)}%</span>
                 </button>
               ))}
@@ -105,3 +136,4 @@ export function ControlPanel() {
     </aside>
   )
 }
+
