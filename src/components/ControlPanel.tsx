@@ -1,8 +1,17 @@
 import { useMemo } from 'react'
 import { useRiskScores } from '../hooks/useRiskScores'
-import { useMapStore } from '../store/useMapStore'
-import { RIVER_NAMES, RISK_LEVEL_ORDER, TRACK_LABELS, type Track } from '../types/risk'
+import { useWeather } from '../hooks/useWeather'
 import { RISK_COLORS } from '../lib/mapStyle'
+import { useMapStore } from '../store/useMapStore'
+import {
+  NO_REALTIME_SENSOR_RIVERS,
+  RIVER_NAMES,
+  RISK_LEVEL_ORDER,
+  TRACK_DESCRIPTIONS,
+  TRACK_LABELS,
+  TRACK_RIVERS,
+  type Track,
+} from '../types/risk'
 
 const TRACKS: Track[] = ['A', 'B']
 
@@ -17,6 +26,9 @@ export function ControlPanel() {
   const selectStation = useMapStore((s) => s.selectStation)
 
   const { data: scores, usingMock } = useRiskScores()
+  const { data: weather } = useWeather()
+
+  const trackRivers = TRACK_RIVERS[track]
 
   const stationsByRiver = useMemo(() => {
     const filtered = (scores ?? []).filter((s) => s.track === track)
@@ -38,6 +50,40 @@ export function ControlPanel() {
         </span>
       </header>
 
+      {/* 강수량 위젯 */}
+      {weather && (
+        <section className="control-section">
+          <h2>현재 기상</h2>
+          <div className="weather-row">
+            <div className="weather-item">
+              <span className="weather-icon">🌧</span>
+              <span className="weather-value">{weather.precipitation_mm.toFixed(1)} mm/h</span>
+              <span className="weather-label">강수량</span>
+            </div>
+            <div className="weather-item">
+              <span className="weather-icon">🌡</span>
+              <span className="weather-value">{weather.temperature_c.toFixed(1)} °C</span>
+              <span className="weather-label">기온</span>
+            </div>
+            <div className="weather-item">
+              <span className={`weather-value ${weather.precipitation_mm > 5 ? 'weather-value--warn' : ''}`}>
+                {weather.precipitation_mm > 10
+                  ? '⚠ CSO 위험'
+                  : weather.precipitation_mm > 5
+                    ? '주의 관찰중'
+                    : '정상'}
+              </span>
+              <span className="weather-label">CSO 상태</span>
+            </div>
+          </div>
+          {weather.forecast_3h_mm > 0 && (
+            <p className="weather-forecast">
+              3시간 후 예보: {weather.forecast_3h_mm.toFixed(1)} mm
+            </p>
+          )}
+        </section>
+      )}
+
       <section className="control-section">
         <h2>예측 트랙</h2>
         <div className="segmented">
@@ -52,12 +98,13 @@ export function ControlPanel() {
             </button>
           ))}
         </div>
+        <p className="track-desc">{TRACK_DESCRIPTIONS[track]}</p>
       </section>
 
       <section className="control-section">
         <h2>하천 표시</h2>
         <div className="chip-row">
-          {RIVER_NAMES.map((river) => (
+          {trackRivers.map((river) => (
             <label key={river} className="chip">
               <input
                 type="checkbox"
@@ -65,6 +112,11 @@ export function ControlPanel() {
                 onChange={() => toggleRiver(river)}
               />
               {river}
+              {NO_REALTIME_SENSOR_RIVERS.has(river) && (
+                <span className="chip-badge chip-badge--warn" title="부산 자동측정망 미설치 구간">
+                  센서없음
+                </span>
+              )}
             </label>
           ))}
         </div>
@@ -77,9 +129,14 @@ export function ControlPanel() {
       <section className="control-section control-section--grow">
         <h2>측정소</h2>
         <div className="station-list">
-          {RIVER_NAMES.filter((r) => visibleRivers.has(r)).map((river) => (
+          {trackRivers.filter((r) => visibleRivers.has(r)).map((river) => (
             <div key={river} className="station-list__group">
-              <h3>{river}</h3>
+              <h3>
+                {river}
+                {NO_REALTIME_SENSOR_RIVERS.has(river) && (
+                  <span className="group-badge group-badge--warn">실시간센서없음</span>
+                )}
+              </h3>
               {stationsByRiver.get(river)?.map((s) => (
                 <button
                   key={s.station_id}
@@ -96,6 +153,9 @@ export function ControlPanel() {
                   />
                   <span className="station-row__id">{s.station_id}</span>
                   <span className="station-row__score">{Math.round(s.risk_score * 100)}%</span>
+                  <span className="station-row__time">
+                    {Math.round((Date.now() - new Date(s.updated_at).getTime()) / 60000)}분 전
+                  </span>
                 </button>
               ))}
             </div>

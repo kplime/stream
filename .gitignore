@@ -23,3 +23,25 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# ML 모델 바이너리 (재생성 가능)
+pipeline/models/
+
+# 다운로드 데이터 (재실행으로 복구 가능)
+pipeline/data/water_quality_raw.csv
+pipeline/data/water_quality_processed.csv
+pipeline/data/rainfall_monthly.csv
+pipeline/data/tide_monthly.csv
+pipeline/data/latest_forecast.json
+pipeline/data/latest_risk_scores.json
+
+# 파이프라인 런타임 secrets
+pipeline/.env
+
+# 중첩 git repo
+stream/

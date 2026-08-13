@@ -1,5 +1,5 @@
 import riverFallback from '../data/riverFallback.json'
-import { RIVER_NAMES, type RiskLevel, type RiskScore, type RiverName, type Track } from '../types/risk'
+import { TRACK_RIVERS, type RiskLevel, type RiskScore, type RiverName, type Track } from '../types/risk'
 
 function levelFromScore(score: number): RiskLevel {
   if (score >= 0.66) return 'high'
@@ -28,16 +28,18 @@ export function generateMockRiskScores(): RiskScore[] {
   const scores: RiskScore[] = []
   const rand = seededRandom(42)
 
-  for (const river of RIVER_NAMES) {
-    const coords = fallback[river]?.features.flatMap((f) => f.geometry.coordinates) ?? []
-    if (coords.length === 0) continue
+  // Track A: 온천천만 (대장균 Nowcast — 접촉 가능 하천)
+  // Track B: 동천 + 괴정천 (폐사위험 분포시차모형 — 접촉 불가 하천)
+  for (const [track, rivers] of Object.entries(TRACK_RIVERS) as [Track, RiverName[]][]) {
+    for (const river of rivers) {
+      const coords = fallback[river]?.features.flatMap((f) => f.geometry.coordinates) ?? []
+      if (coords.length === 0) continue
 
-    const stationCount = 6
-    for (let i = 0; i < stationCount; i++) {
-      const idx = Math.floor((i / (stationCount - 1)) * (coords.length - 1))
-      const [lng, lat] = coords[idx]
+      const stationCount = river === '온천천' ? 3 : 2
+      for (let i = 0; i < stationCount; i++) {
+        const idx = Math.floor((i / Math.max(stationCount - 1, 1)) * (coords.length - 1))
+        const [lng, lat] = coords[idx]
 
-      for (const track of ['A', 'B'] as Track[]) {
         const base = rand()
         const drift = (rand() - 0.5) * 0.15
         const risk_score = Math.min(1, Math.max(0, base + drift))

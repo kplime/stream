@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { RIVER_NAMES, type RiverName, type Track } from '../types/risk'
+import { TRACK_RIVERS, type RiverName, type Track } from '../types/risk'
 
 interface SelectedStation {
   stationId: string
@@ -27,9 +27,10 @@ interface MapState {
 
 export const useMapStore = create<MapState>((set) => ({
   track: 'A',
-  setTrack: (track) => set({ track }),
+  // Track 변경 시 해당 트랙의 기본 하천으로 visibleRivers 자동 갱신
+  setTrack: (track) => set({ track, visibleRivers: new Set(TRACK_RIVERS[track]) }),
 
-  visibleRivers: new Set(RIVER_NAMES),
+  visibleRivers: new Set(TRACK_RIVERS['A']),
   toggleRiver: (river) =>
     set((state) => {
       const next = new Set(state.visibleRivers)

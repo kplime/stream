@@ -234,6 +234,102 @@
   flex: none;
 }
 
+/* ---------- track description ---------- */
+
+.track-desc {
+  font-size: 11px;
+  color: #898781;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ---------- chip badges ---------- */
+
+.chip-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+  margin-left: 2px;
+}
+
+.chip-badge--warn {
+  background: rgba(250, 178, 25, 0.2);
+  color: #fab219;
+}
+
+/* ---------- station group badge ---------- */
+
+.group-badge {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.group-badge--warn {
+  background: rgba(250, 178, 25, 0.15);
+  color: #fab219;
+}
+
+/* ---------- station row time ---------- */
+
+.station-row__time {
+  font-size: 10.5px;
+  color: #5a5955;
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+}
+
+/* ---------- weather widget ---------- */
+
+.weather-row {
+  display: flex;
+  gap: 6px;
+}
+
+.weather-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: #0d0d0d;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px 4px;
+}
+
+.weather-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.weather-value {
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #e8e8e4;
+}
+
+.weather-value--warn {
+  color: #d03b3b;
+}
+
+.weather-label {
+  font-size: 10px;
+  color: #5a5955;
+}
+
+.weather-forecast {
+  font-size: 11px;
+  color: #fab219;
+  margin: 4px 0 0;
+}
+
 /* ---------- maplibre overrides ---------- */
 
 .maplibregl-popup-content {
