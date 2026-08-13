@@ -92,6 +92,12 @@ function buildPopupHtml(
     return `<span style="background:${c};color:#fff;padding:1px 6px;border-radius:4px;font-size:11px;font-weight:700">${pct}%</span>`
   }
 
+  // updated_at이 미래면 예보 시점을 보고 있는 것
+  const isForecast = (() => {
+    const dt = new Date(updatedAt)
+    return !isNaN(dt.getTime()) && dt.getTime() - Date.now() > 60_000
+  })()
+
   const timeStr = (() => {
     try {
       const dt = new Date(updatedAt)
@@ -112,9 +118,14 @@ function buildPopupHtml(
     if (typeof s.shap === 'string') return s.shap   // 이미 JSON 문자열
     return JSON.stringify(s.shap)                   // 객체면 직렬화
   }
-  // SHAP: 실시간 scores 우선, 없으면 forecast scores에서 시도
-  const shapA = toShapStr(liveA) ?? toShapStr(scoreA)
-  const shapB = toShapStr(liveB) ?? toShapStr(scoreB)
+  // SHAP: 현재 표시 중인 시점의 SHAP을 우선한다.
+  // 예보 모드에서 실시간 SHAP을 먼저 쓰면 시간이 바뀌어도 판단 요소가
+  // 고정되어 보이므로, 예보 행에 shap이 있으면 그것을 쓰고 없을 때만 대체한다.
+  const shapA = toShapStr(scoreA) ?? toShapStr(liveA)
+  const shapB = toShapStr(scoreB) ?? toShapStr(liveB)
+  // 예보 시점인데 예보 SHAP이 없어 실시간 값으로 대체한 경우 표시용 플래그
+  const shapIsFallback =
+    !toShapStr(scoreA) && !toShapStr(scoreB) && Boolean(toShapStr(liveA) || toShapStr(liveB))
 
   // 오염원 역추적 버튼 (medium 이상 위험도일 때 표시)
   const maxRiskLevel = scoreA?.risk_level === 'high' || scoreB?.risk_level === 'high'
@@ -150,6 +161,11 @@ function buildPopupHtml(
 
     ${buildShapHtml(shapA, 'A')}
     ${buildShapHtml(shapB, 'B')}
+    ${isForecast && shapIsFallback
+      ? `<div style="margin-top:8px;font-size:10px;color:#999;line-height:1.4">
+           ※ 판단 요소는 현재 실측 기준입니다 (예보 시점별 SHAP 미저장)
+         </div>`
+      : ''}
     ${trackerBtn}
   </div>`
 }
@@ -206,6 +222,8 @@ export function MapView() {
           risk_score: f.risk_score,
           risk_level: f.risk_level as RiskLevel,
           updated_at: f.forecast_dt,
+          // 예보 SHAP을 그대로 실어 보낸다 (없으면 팝업이 실시간 SHAP으로 대체)
+          shap: f.shap as RiskScore['shap'],
         }
       })
   }, [forecastHour, forecast, scores, stationCoords])

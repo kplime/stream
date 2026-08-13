@@ -25,6 +25,7 @@ from xml.etree import ElementTree as ET
 
 import numpy as np
 import pandas as pd
+import shap
 from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parent / ".env")
@@ -299,7 +300,10 @@ def predict_forecast(
     # (행마다 now()를 부르면 값이 미세하게 달라져 배치 단위 정리가 불가능해진다)
     batch_ts = datetime.now(timezone.utc).isoformat()
 
-    rows = []
+    rows: list[dict] = []
+    feat_rows: dict[str, list[dict]] = {"A": [], "B": []}   # 트랙별 피처 (배치 예측용)
+    row_index: dict[str, list[int]] = {"A": [], "B": []}    # feat_rows[i] → rows[i] 매핑
+
     # 모든 측정소에 Track A + Track B 둘 다 적용 (ml_pipeline.py 실시간 예측과 동일)
     # 하천별 주 트랙만 내보내면 프론트 팝업에서 한쪽 위험도가 비어 보인다.
     for loc, base in current.items():
@@ -350,29 +354,54 @@ def predict_forecast(
 
             # 피처는 시점당 한 번만 만들고 두 모델이 각자 필요한 컬럼만 골라 쓴다
             # (Track A는 DO, Track B는 tide_mean_cm 사용 등 피처 집합이 다름)
-            for track, pkg in (("A", pkg_a), ("B", pkg_b)):
-                feat_names = pkg["features"]
-                model = pkg["model"]
-
-                X = pd.DataFrame([{f: feat.get(f, np.nan) for f in feat_names}])
-                X = X.apply(pd.to_numeric, errors="coerce").fillna(0.0)
-
-                prob = float(model.predict_proba(X)[0, 1])
-                level = "high" if prob >= 0.66 else "medium" if prob >= 0.33 else "low"
-
+            # 예측·SHAP은 아래에서 트랙별로 한 번에 배치 처리한다.
+            for track in ("A", "B"):
+                feat_rows[track].append(feat)
+                row_index[track].append(len(rows))
                 rows.append({
                     "station_id":  f"{river}-{loc}",
                     "river_name":  river,
                     "track":       track,
                     "forecast_dt": dt_utc.isoformat(),
                     "hours_ahead": i + 1,
-                    "risk_score":  round(prob, 3),
-                    "risk_level":  level,
                     "rain_mm":     round(cumulative_rain, 1),
                     "tide_cm":     round(float(wx_row["tide_cm"]), 1),
                     "temp_c":      round(float(wx_row["temp_c"] or 25.0), 1),
                     "generated_at": batch_ts,
                 })
+
+    # ── 트랙별 배치 예측 + SHAP ────────────────────────────
+    # 행마다 predict_proba/shap_values를 호출하면 960회 오버헤드가 크다.
+    # 트랙별로 한 번에 계산해 각 행에 되돌려 넣는다.
+    for track, pkg in (("A", pkg_a), ("B", pkg_b)):
+        idxs = row_index[track]
+        if not idxs:
+            continue
+        feat_names = pkg["features"]
+        model = pkg["model"]
+
+        X = pd.DataFrame([{f: fr.get(f, np.nan) for f in feat_names} for fr in feat_rows[track]])
+        X = X.apply(pd.to_numeric, errors="coerce").fillna(0.0)
+
+        probs = model.predict_proba(X)[:, 1]
+
+        # SHAP: 시점마다 판단 요소가 달라지도록 예보 행에도 저장한다.
+        # (risk_forecast에 shap이 없으면 프론트가 실시간 SHAP으로 대체하는데,
+        #  그 값은 시간이 바뀌어도 고정이라 "예측 요소가 안 변한다"는 문제가 됐다)
+        try:
+            explainer = shap.TreeExplainer(model)
+            shap_vals = explainer.shap_values(X)
+        except Exception as e:
+            print(f"  [WARN] Track {track} SHAP 계산 실패: {e}")
+            shap_vals = None
+
+        for j, ri in enumerate(idxs):
+            prob = float(probs[j])
+            rows[ri]["risk_score"] = round(prob, 3)
+            rows[ri]["risk_level"] = "high" if prob >= 0.66 else "medium" if prob >= 0.33 else "low"
+            if shap_vals is not None:
+                sd = {f: round(float(v), 4) for f, v in zip(feat_names, shap_vals[j])}
+                rows[ri]["shap"] = json.dumps(sd, ensure_ascii=False)
 
     print(f"[예측] {len(rows)}건 생성 ({len(current)}개 측정소 × 2트랙 × {hours}시간)")
     return rows
@@ -392,6 +421,27 @@ def push_to_supabase(rows: list[dict]):
 
     from supabase import create_client
     sb = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+    # shap 컬럼 존재 여부 확인.
+    # 없는데 그대로 보내면 upsert 전체가 실패해 예보가 통째로 날아간다.
+    # 이 경우 shap만 떼고 넣되, 추가 방법을 안내한다.
+    has_shap = False
+    try:
+        probe = sb.table("risk_forecast").select("*").limit(1).execute()
+        if probe.data:
+            has_shap = "shap" in probe.data[0]
+        else:
+            has_shap = True  # 빈 테이블이면 판단 불가 → 그대로 시도
+    except Exception as e:
+        print(f"  [WARN] 스키마 확인 실패, shap 포함해 시도: {e}")
+        has_shap = True
+
+    if not has_shap:
+        for r in rows:
+            r.pop("shap", None)
+        print("  [WARN] risk_forecast에 shap 컬럼이 없어 예보 SHAP을 저장하지 못했습니다.")
+        print("         Supabase SQL 편집기에서 아래를 실행하면 시간별 판단 요소가 활성화됩니다:")
+        print("         ALTER TABLE risk_forecast ADD COLUMN IF NOT EXISTS shap jsonb;")
 
     # 배치 upsert (500건씩)
     chunk = 500

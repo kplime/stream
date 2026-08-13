@@ -27,6 +27,9 @@ export interface ForecastPoint {
   rain_mm: number
   tide_cm: number
   temp_c: number
+  // 예보 시점별 SHAP. risk_forecast에 shap 컬럼이 없으면 undefined이고,
+  // 이때 팝업은 실시간 SHAP으로 대체한다 (그 값은 시간에 따라 변하지 않음).
+  shap?: Record<string, number> | string | null
 }
 
 async function fetchForecast(): Promise<ForecastPoint[]> {
