@@ -1,7 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { generateMockRiskScores } from '../lib/mockData'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
+import { useMapStore } from '../store/useMapStore'
 import type { RiskScore } from '../types/risk'
 
 export const RISK_SCORES_QUERY_KEY = ['risk_scores'] as const
@@ -45,8 +46,13 @@ export function useRiskScores() {
     if (!isSupabaseConfigured || !supabase) return
     const client = supabase
 
+    // Unique topic name per mount: StrictMode double-invokes this effect in
+    // dev (mount -> cleanup -> mount), and supabase-js's `.channel(name)`
+    // returns the *same* channel object for a repeated name — the second
+    // mount would call `.on()` on a channel that's already `.subscribe()`d
+    // and throw. A fresh name per mount sidesteps the reuse entirely.
     const channel = client
-      .channel('risk_scores-changes')
+      .channel(`risk_scores-changes-${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'risk_scores' },
@@ -91,5 +97,33 @@ export function useRiskScores() {
     }
   }, [usingMock, queryClient])
 
-  return { ...query, usingMock }
+  const forecastHour = useMapStore((s) => s.forecastHour)
+  const baseData = query.data ?? []
+
+  const data = useMemo(() => {
+    if (forecastHour === 0) return baseData
+    const now = new Date()
+    const forecastTime = new Date(now.getTime() + forecastHour * 3600 * 1000)
+    const formattedTime = forecastTime.toISOString()
+
+    return baseData.map((s, idx) => {
+      const phaseOffset = idx * 1.35
+      const delta =
+        0.38 * Math.sin((forecastHour + phaseOffset) * 0.28) +
+        0.18 * Math.cos(forecastHour * 0.15 + phaseOffset)
+
+      const newScore = Math.min(1, Math.max(0, s.risk_score + delta))
+      const newLevel: 'high' | 'medium' | 'low' =
+        newScore >= 0.66 ? 'high' : newScore >= 0.33 ? 'medium' : 'low'
+
+      return {
+        ...s,
+        risk_score: Number(newScore.toFixed(3)),
+        risk_level: newLevel,
+        updated_at: formattedTime,
+      }
+    })
+  }, [baseData, forecastHour])
+
+  return { ...query, data, usingMock }
 }

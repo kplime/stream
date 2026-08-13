@@ -1,0 +1,156 @@
+{
+  "generated_at": "2026-08-13T22:50:35.391241",
+  "source": "BusanRvrwtQltyInfoService.getRvrwtQltyInfo (수동측정망, 갱신주기 일 1회)",
+  "note": "risk_score는 XGBoost/DLM 모델이 아직 실데이터로 재학습되지 않아 환경정책기본법 시행령 하천 생활환경기준 경계값 기반 규칙 점수입니다.",
+  "rivers": {
+    "온천천": [
+      {
+        "station_name": "온천천(세병)",
+        "address": "세병교",
+        "measured_at": "202606",
+        "bod": null,
+        "cod": null,
+        "do": null,
+        "total_coliform": null,
+        "water_temp": null,
+        "data_missing": true,
+        "risk_score": null,
+        "risk_level": null
+      },
+      {
+        "station_name": "온천천(온천)",
+        "address": "온천교",
+        "measured_at": "202406",
+        "bod": 1.7,
+        "cod": 5.6,
+        "do": 8.1,
+        "total_coliform": 40000.0,
+        "water_temp": 25.2,
+        "data_missing": false,
+        "risk_score": 0.5019,
+        "risk_level": "medium"
+      },
+      {
+        "station_name": "온천천(청룡)",
+        "address": "청룡2호교",
+        "measured_at": "202606",
+        "bod": 1.5,
+        "cod": 2.1,
+        "do": 9.4,
+        "total_coliform": 1300.0,
+        "water_temp": 20.2,
+        "data_missing": false,
+        "risk_score": 0.3341,
+        "risk_level": "medium"
+      },
+      {
+        "station_name": "온천천1(태광산업)",
+        "address": "태광산업 앞",
+        "measured_at": "202606",
+        "bod": 7.9,
+        "cod": 9.7,
+        "do": 7.1,
+        "total_coliform": 160000.0,
+        "water_temp": 23.5,
+        "data_missing": false,
+        "risk_score": 0.6508,
+        "risk_level": "medium"
+      },
+      {
+        "station_name": "온천천2(연안교)",
+        "address": "연안교",
+        "measured_at": "202605",
+        "bod": 3.4,
+        "cod": 6.4,
+        "do": 6.9,
+        "total_coliform": 50000.0,
+        "water_temp": 20.3,
+        "data_missing": false,
+        "risk_score": 0.5383,
+        "risk_level": "medium"
+      }
+    ],
+    "동천": [
+      {
+        "station_name": "동천1",
+        "address": "광무교",
+        "measured_at": "202510",
+        "bod": 2.0,
+        "cod": 3.0,
+        "do": 5.9,
+        "total_coliform": 110000.0,
+        "water_temp": 22.8,
+        "data_missing": false,
+        "risk_score": 0.4709,
+        "risk_level": "medium"
+      },
+      {
+        "station_name": "동천2",
+        "address": "범4호교",
+        "measured_at": "202510",
+        "bod": 1.8,
+        "cod": 2.5,
+        "do": 5.3,
+        "total_coliform": 70000.0,
+        "water_temp": 22.5,
+        "data_missing": false,
+        "risk_score": 0.4611,
+        "risk_level": "medium"
+      },
+      {
+        "station_name": "동천2-1",
+        "address": "범3호교(성서교)",
+        "measured_at": "202510",
+        "bod": 1.6,
+        "cod": 2.2,
+        "do": 4.3,
+        "total_coliform": 14000.0,
+        "water_temp": 22.6,
+        "data_missing": false,
+        "risk_score": 0.496,
+        "risk_level": "medium"
+      },
+      {
+        "station_name": "동천3",
+        "address": "범일교",
+        "measured_at": "202510",
+        "bod": 1.4,
+        "cod": 1.8,
+        "do": 4.4,
+        "total_coliform": 11000.0,
+        "water_temp": 23.1,
+        "data_missing": false,
+        "risk_score": 0.4815,
+        "risk_level": "medium"
+      },
+      {
+        "station_name": "호계천",
+        "address": "범곡교차로",
+        "measured_at": "202606",
+        "bod": 33.6,
+        "cod": 31.1,
+        "do": 5.1,
+        "total_coliform": 460000.0,
+        "water_temp": 20.7,
+        "data_missing": false,
+        "risk_score": 0.7,
+        "risk_level": "high"
+      }
+    ],
+    "괴정천": [
+      {
+        "station_name": "괴정천",
+        "address": "하단초등학교 뒤",
+        "measured_at": "202606",
+        "bod": 3.4,
+        "cod": 2.4,
+        "do": 7.7,
+        "total_coliform": 17000.0,
+        "water_temp": 24.9,
+        "data_missing": false,
+        "risk_score": 0.4837,
+        "risk_level": "medium"
+      }
+    ]
+  }
+}

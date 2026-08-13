@@ -1,0 +1,12 @@
+# 필수 — 이것만 있으면 파이프라인 전체(Track A/B, 이상치 탐지, 브리핑, Supabase 기록)가 동작함.
+numpy
+pandas
+requests
+
+# 선택 — 없어도 코드에 폴백이 있어서 파이프라인은 정상 동작함.
+# scikit-learn: Track A IRLS 계수 검증용 비교 (models/track_a.py)
+# scipy:        카이제곱 임계값 / 정규분포 CDF 정확 계산 (없으면 utils/stats.py 하드코딩·근사식 사용)
+# anthropic:    위험도 자연어 브리핑 LLM 호출 (없으면 output/briefing.py 규칙 기반 템플릿 사용)
+scikit-learn
+scipy
+anthropic

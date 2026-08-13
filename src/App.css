@@ -239,3 +239,1059 @@
 .maplibregl-popup-content {
   border-radius: 8px;
 }
+
+/* ---------- Subtitle & Status Badges ---------- */
+
+.control-panel__subtitle-text {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  color: #a0a098;
+}
+
+.badge-missing {
+  margin-left: 4px;
+  font-size: 11px;
+}
+
+.badge-anomaly {
+  margin-left: 4px;
+  font-size: 11px;
+  animation: pulse-alert 1.5s infinite;
+}
+
+@keyframes pulse-alert {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+/* ---------- Candidate Pledge Banner ---------- */
+
+.control-panel__banner-wrapper {
+  margin-bottom: 4px;
+}
+
+.pledge-trigger-btn {
+  width: 100%;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.pledge-trigger-btn:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+
+.pledge-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.pledge-modal {
+  width: 100%;
+  max-width: 680px;
+  background: #18181b;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  padding: 24px;
+  color: #f4f4f5;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.pledge-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.pledge-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.12);
+  padding: 4px 10px;
+  border-radius: 999px;
+  margin-bottom: 6px;
+}
+
+.pledge-modal__header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.pledge-close-btn {
+  background: transparent;
+  border: none;
+  color: #a1a1aa;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.pledge-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pledge-card {
+  background: #27272a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 16px;
+  position: relative;
+}
+
+.pledge-card--highlight {
+  border-color: #3b82f6;
+  background: linear-gradient(180deg, #1e293b 0%, #18181b 100%);
+}
+
+.pledge-card__num {
+  font-size: 11px;
+  font-weight: 800;
+  color: #9ca3af;
+  text-transform: uppercase;
+}
+
+.pledge-card h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 4px 0 12px;
+  color: #ffffff;
+}
+
+.pledge-card__versus {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.versus-box {
+  background: #18181b;
+  border-left: 3px solid #ef4444;
+  padding: 10px 12px;
+  border-radius: 4px 8px 8px 4px;
+}
+
+.versus-box--data {
+  border-left-color: #f59e0b;
+}
+
+.versus-box--impact {
+  border-left-color: #10b981;
+}
+
+.versus-box strong {
+  display: block;
+  font-size: 12px;
+  color: #d4d4d8;
+  margin-bottom: 4px;
+}
+
+.versus-box p {
+  margin: 0;
+  color: #a1a1aa;
+}
+
+.pledge-action-btn {
+  margin-top: 12px;
+  width: 100%;
+  padding: 8px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pledge-modal__footer {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 16px;
+  font-size: 12px;
+  color: #71717a;
+}
+
+.pledge-close-main-btn {
+  padding: 8px 16px;
+  background: #3f3f46;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* ---------- AI SHAP Diagnosis Modal ---------- */
+
+.shap-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.shap-modal {
+  width: 100%;
+  max-width: 540px;
+  background: #121214;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  padding: 24px;
+  color: #f4f4f5;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  animation: modal-pop 0.25s ease-out;
+}
+
+@keyframes modal-pop {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.shap-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.shap-modal__title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.shap-modal__risk-badge {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.shap-modal__title {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.shap-modal__subtitle {
+  font-size: 12px;
+  color: #a1a1aa;
+  margin: 2px 0 0;
+}
+
+.shap-modal__close-btn {
+  background: transparent;
+  border: none;
+  color: #71717a;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.shap-alert {
+  padding: 12px 14px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.shap-alert--warning {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #fbbf24;
+}
+
+.shap-alert--danger {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+}
+
+.shap-modal__section {
+  margin-bottom: 20px;
+}
+
+.shap-modal__section h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 4px;
+  color: #ffffff;
+}
+
+.shap-modal__desc {
+  font-size: 12px;
+  color: #a1a1aa;
+  margin: 0 0 14px;
+}
+
+.shap-factors-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #18181b;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.shap-factor-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.shap-factor-info {
+  width: 170px;
+  display: flex;
+  flex-direction: column;
+}
+
+.shap-factor-label {
+  font-size: 12px;
+  color: #e4e4e7;
+  font-weight: 500;
+}
+
+.shap-factor-val {
+  font-size: 11px;
+  color: #71717a;
+}
+
+.shap-factor-bar-bg {
+  flex: 1;
+  height: 8px;
+  background: #27272a;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.shap-factor-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.shap-factor-bar--pos {
+  background: linear-gradient(90deg, #f97316 0%, #ef4444 100%);
+}
+
+.shap-factor-bar--neg {
+  background: linear-gradient(90deg, #3b82f6 0%, #10b981 100%);
+}
+
+.shap-factor-impact {
+  width: 45px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 700;
+  color: #f4f4f5;
+  font-variant-numeric: tabular-nums;
+}
+
+.shap-modal__section--highlight {
+  background: #1e1b4b;
+  border: 1px solid #4338ca;
+  padding: 14px;
+  border-radius: 10px;
+}
+
+.shap-lag-card {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.shap-lag-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 10px 14px;
+  border-radius: 8px;
+  min-width: 100px;
+}
+
+.shap-lag-number {
+  font-size: 20px;
+  font-weight: 800;
+  color: #818cf8;
+}
+
+.shap-lag-label {
+  font-size: 10px;
+  color: #c7d2fe;
+  text-align: center;
+}
+
+.shap-lag-text {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #e0e7ff;
+  margin: 0;
+}
+
+.shap-modal__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 14px;
+}
+
+.shap-modal__time {
+  font-size: 11px;
+  color: #71717a;
+}
+
+.shap-modal__btn-primary {
+  padding: 8px 20px;
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* ---------- 2D GPS Location Marker (Apple/Mapbox Minimalist Style) ---------- */
+
+.user-location-pulse-marker {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 999 !important;
+}
+
+.user-location-pulse-ring {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(96, 165, 250, 0.45);
+  animation: location-pulse-anim 2.5s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+@keyframes location-pulse-anim {
+  0% { transform: scale(0.4); opacity: 0.9; }
+  70% { opacity: 0.3; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.user-location-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #2563eb;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35), 0 0 6px rgba(37, 99, 235, 0.4);
+  z-index: 2;
+}
+
+/* ---------- 3D Pokemon GO Avatar Marker ---------- */
+
+.avatar-3d-canvas-container {
+  z-index: 999 !important;
+  pointer-events: none;
+}
+
+/* 캐릭터 발밑 그림자 타원. scaleWrapper의 자식이라 줌 배율(scale())을 캐릭터와
+   똑같이 그대로 물려받아 같이 커지고 작아진다 — 별도 줌 리스너 불필요. */
+.avatar-ground-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: 3px;
+  z-index: 0;
+  width: 40px;
+  height: 13px;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.15) 55%, rgba(0, 0, 0, 0) 78%);
+  border-radius: 50%;
+  filter: blur(1px);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.avatar-character-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.3s ease;
+}
+
+.avatar-character {
+  font-size: 32px;
+  filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.5));
+  animation: avatar-bounce 1s infinite alternate ease-in-out;
+}
+
+@keyframes avatar-bounce {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-6px); }
+}
+
+.avatar-shadow {
+  width: 20px;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 50%;
+  margin-top: -4px;
+}
+
+/* ---------- Pokemon GO Mode Button ---------- */
+
+.pokemongo-mode-btn {
+  margin-top: 8px;
+  width: 100%;
+  padding: 10px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  transition: all 0.2s ease;
+}
+
+.pokemongo-mode-btn:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+
+.pokemongo-mode-btn--active {
+  background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+  box-shadow: 0 4px 14px rgba(236, 72, 153, 0.4);
+}
+
+/* ---------- Exploration HUD ---------- */
+
+.exploration-hud {
+  position: absolute;
+  top: 16px;
+  left: 340px;
+  right: 16px;
+  max-width: 480px;
+  background: rgba(18, 18, 20, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  border-radius: 14px;
+  padding: 14px 18px;
+  color: #ffffff;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+  animation: slide-down 0.3s ease-out;
+}
+
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hud-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.hud-title-group h2 {
+  font-size: 16px;
+  font-weight: 800;
+  margin: 2px 0 0;
+  color: #ffffff;
+}
+
+.hud-badge {
+  font-size: 10px;
+  font-weight: 800;
+  color: #ec4899;
+  background: rgba(236, 72, 153, 0.15);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.hud-close-btn {
+  background: #3f3f46;
+  color: #e4e4e7;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hud-stats-grid {
+  display: flex;
+  gap: 12px;
+}
+
+.hud-stat-box {
+  flex: 1;
+  background: #27272a;
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.hud-stat-label {
+  font-size: 11px;
+  color: #a1a1aa;
+}
+
+.hud-stat-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: #f4f4f5;
+}
+
+.hud-stat-val--highlight {
+  color: #10b981;
+  font-size: 16px;
+}
+
+.hud-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.avatar-picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #27272a;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+
+.avatar-picker-label {
+  font-size: 11.5px;
+  color: #d4d4d8;
+  font-weight: 600;
+}
+
+.avatar-picker-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.avatar-picker-btn {
+  padding: 4px 10px;
+  background: #3f3f46;
+  color: #a1a1aa;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.avatar-picker-btn:hover {
+  background: #52525b;
+  color: #ffffff;
+}
+
+.avatar-picker-btn--active {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #60a5fa;
+}
+
+.hud-btn {
+  padding: 8px 14px;
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hud-btn--active {
+  background: #ef4444;
+}
+
+.hud-help-text {
+  font-size: 11px;
+  color: #9ca3af;
+  margin: 0;
+}
+
+.hud-alert-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.25) 0%, rgba(245, 158, 11, 0.2) 100%);
+  border: 1px solid #ef4444;
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+.hud-alert-icon {
+  font-size: 24px;
+}
+
+.hud-alert-body {
+  flex: 1;
+}
+
+.hud-alert-body strong {
+  font-size: 13px;
+  color: #ffffff;
+}
+
+.hud-alert-body p {
+  margin: 2px 0 6px;
+  font-size: 11.5px;
+  color: #fca5a5;
+}
+
+.hud-action-btn {
+  padding: 6px 12px;
+  background: #10b981;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ---------- Citizen Report Modal ---------- */
+
+.report-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.report-modal {
+  width: 100%;
+  max-width: 440px;
+  background: #18181b;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  padding: 22px;
+  color: #ffffff;
+}
+
+.report-modal h3 {
+  font-size: 16px;
+  margin: 0 0 6px;
+}
+
+.report-desc {
+  font-size: 12px;
+  color: #a1a1aa;
+  margin: 0 0 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.form-group label {
+  font-size: 12px;
+  color: #d4d4d8;
+  font-weight: 600;
+}
+
+.form-input {
+  background: #27272a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: #ffffff;
+  font-size: 12.5px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.btn-cancel {
+  padding: 8px 14px;
+  background: #3f3f46;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.report-submit-btn {
+  padding: 8px 16px;
+  background: #10b981;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.report-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 0;
+  gap: 8px;
+}
+
+.control-panel__btn-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.locate-me-btn {
+  flex: 1.2;
+  padding: 8px 6px;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 700;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3);
+  transition: all 0.2s ease;
+}
+
+.locate-me-btn:hover {
+  filter: brightness(1.15);
+}
+
+/* ---------- Digital Twin 48-Hour Forecast Time Slider Card ---------- */
+
+.forecast-slider-card {
+  position: absolute;
+  bottom: 24px;
+  left: calc(50% + 160px);
+  transform: translateX(-50%);
+  z-index: 900;
+  width: calc(100% - 440px);
+  max-width: 640px;
+  min-width: 320px;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  padding: 14px 20px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45), 0 0 1px rgba(255, 255, 255, 0.2);
+  color: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: all 0.3s ease;
+}
+
+.forecast-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.forecast-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.forecast-icon {
+  font-size: 20px;
+}
+
+.forecast-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.forecast-subtitle {
+  font-size: 11px;
+  color: #94a3b8;
+  margin: 2px 0 0 0;
+}
+
+.forecast-badge-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.forecast-badge {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: rgba(51, 65, 85, 0.7);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.25s ease;
+}
+
+.forecast-badge--active {
+  background: rgba(37, 99, 235, 0.25);
+  color: #60a5fa;
+  border-color: rgba(96, 165, 250, 0.4);
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.25);
+}
+
+.forecast-reset-btn {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.forecast-reset-btn:hover {
+  background: rgba(239, 68, 68, 0.3);
+  color: #ffffff;
+}
+
+.forecast-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.forecast-play-btn {
+  padding: 7px 14px;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.forecast-play-btn:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+
+.forecast-play-btn--active {
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.4);
+}
+
+.forecast-track-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.forecast-range-input {
+  width: 100%;
+  height: 6px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #10b981 0%, #3b82f6 50%, #ef4444 100%);
+  outline: none;
+  accent-color: #60a5fa;
+  cursor: pointer;
+}
+
+.forecast-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: #64748b;
+  padding: 0 2px;
+}
+
+.forecast-ticks span {
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.forecast-ticks span:hover {
+  color: #94a3b8;
+}
+
+.forecast-ticks span.tick--active {
+  color: #60a5fa;
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .forecast-slider-card {
+    left: 50%;
+    width: calc(100% - 32px);
+    bottom: 16px;
+    padding: 12px;
+  }
+}
+
+
+

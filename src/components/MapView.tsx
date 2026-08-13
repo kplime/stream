@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRiskScores } from '../hooks/useRiskScores'
 import { useRiverGeometry } from '../hooks/useRiverGeometry'
 import {
+  BUSAN_MAX_BOUNDS,
   FALLBACK_BUILDINGS_3D_LAYER_ID,
   INITIAL_VIEW,
   MAP_STYLE_URL,
@@ -20,6 +21,10 @@ import {
 import { buildRiskSegments } from '../lib/riverSegments'
 import { useMapStore } from '../store/useMapStore'
 import { RIVER_NAMES, TRACK_LABELS, type RiverName } from '../types/risk'
+import { AvatarMarker } from './AvatarMarker'
+import { useUserLocation } from '../hooks/useUserLocation'
+
+
 
 const EMPTY_FC: FeatureCollection = { type: 'FeatureCollection', features: [] }
 
@@ -75,11 +80,28 @@ export function MapView() {
       zoom: INITIAL_VIEW.zoom,
       pitch: INITIAL_VIEW.pitch,
       bearing: INITIAL_VIEW.bearing,
+      // 포켓몬고 스타일 뷰 고정: pitch를 INITIAL_VIEW.pitch(45도)로 고정하고,
+      // 드래그 회전/피치, 터치 피치/회전 조작을 비활성화한다.
+      minPitch: INITIAL_VIEW.pitch,
+      maxPitch: INITIAL_VIEW.pitch,
+      dragRotate: false,
+      pitchWithRotate: false,
+      touchPitch: false,
+      // 🔒 보수적 최소 축소 한계 (부산 도심 3대 하천 권역 밖으로 축소 불가: Zoom 11.8)
+      minZoom: 11.8,
+      // 🔒 보수적 최대 확대 한계 (과도한 줌 확대 방지: Zoom 16.0)
+      maxZoom: 16.0,
+      // 🔒 이동 영역 보수적 제한: 온천천·동천·괴정천 도심하천 유역 밖 이동 완전 차단
+      maxBounds: BUSAN_MAX_BOUNDS,
     })
     mapRef.current = map
     map.on('error', (e) => console.error('[maplibre error]', e.error?.message ?? e))
 
-    map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right')
+    // 터치 회전 조작도 비활성화
+    map.touchZoomRotate?.disableRotation()
+
+    // 각도가 고정되어 있으므로 컴퍼스(회전) 버튼을 제외하고 확대/축소 버튼만 표시
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
     map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left')
 
     map.on('load', () => {
@@ -114,7 +136,7 @@ export function MapView() {
       map.addSource(RIVER_SOURCE_ID, { type: 'geojson', data: EMPTY_FC })
       map.addSource(STATION_SOURCE_ID, { type: 'geojson', data: EMPTY_FC })
 
-      // Soft glow underlay so risk color reads clearly against the dark basemap.
+      // Soft glow underlay so risk color reads clearly against the basemap
       map.addLayer({
         id: RIVER_GLOW_LAYER_ID,
         type: 'line',
@@ -122,8 +144,8 @@ export function MapView() {
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: {
           'line-color': ['match', ['get', 'risk_level'], 'high', RISK_COLORS.high, 'medium', RISK_COLORS.medium, 'low', RISK_COLORS.low, RISK_COLORS.unknown],
-          'line-width': ['interpolate', ['linear'], ['zoom'], 10, 6, 16, 16],
-          'line-opacity': 0.35,
+          'line-width': ['interpolate', ['linear'], ['zoom'], 10, 8, 16, 18],
+          'line-opacity': 0.3,
           'line-blur': 3,
         },
       })
@@ -135,7 +157,8 @@ export function MapView() {
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: {
           'line-color': ['match', ['get', 'risk_level'], 'high', RISK_COLORS.high, 'medium', RISK_COLORS.medium, 'low', RISK_COLORS.low, RISK_COLORS.unknown],
-          'line-width': ['interpolate', ['linear'], ['zoom'], 10, 2.5, 16, 6],
+          'line-width': ['interpolate', ['linear'], ['zoom'], 10, 3.5, 16, 8.5],
+          'line-opacity': 0.5,
         },
       })
 
@@ -144,10 +167,10 @@ export function MapView() {
         type: 'circle',
         source: STATION_SOURCE_ID,
         paint: {
-          'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 4, 16, 9],
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 5, 16, 10],
           'circle-color': ['match', ['get', 'risk_level'], 'high', RISK_COLORS.high, 'medium', RISK_COLORS.medium, 'low', RISK_COLORS.low, RISK_COLORS.unknown],
           'circle-stroke-color': '#ffffff',
-          'circle-stroke-width': 1.5,
+          'circle-stroke-width': 2.0,
         },
       })
 
@@ -246,5 +269,33 @@ export function MapView() {
     flyToTarget(null)
   }, [mapReady, flyToRequest, flyToTarget])
 
-  return <div ref={containerRef} className="map-view" />
+  // --- 3D 캐릭터 표출 시 (Zoom >= 14.5) 캐릭터 정중앙밀착 실시간 추적 ---
+  const userLocation = useMapStore((s) => s.userLocation)
+  useUserLocation()
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady || !userLocation) return
+
+    const zoom = map.getZoom()
+    // 캐릭터 중심 시점 고정은 오직 최대 확대 한계점(Zoom >= 15.8)에 도달했을 때만 동작
+    if (show3dBuildings && zoom >= 15.8) {
+      map.easeTo({
+        center: [userLocation.lng, userLocation.lat],
+        zoom: 16.0,
+        pitch: 45,
+        bearing: userLocation.heading,
+        duration: 150,
+        easing: (t) => t,
+      })
+    }
+  }, [mapReady, show3dBuildings, userLocation])
+
+  return (
+    <div ref={containerRef} className="map-view">
+      <AvatarMarker map={mapRef.current} />
+    </div>
+  )
 }
+
+

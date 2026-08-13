@@ -23,6 +23,26 @@ interface MapState {
 
   flyToTarget: { lng: number; lat: number; zoom?: number } | null
   flyTo: (target: { lng: number; lat: number; zoom?: number } | null) => void
+
+  pokemonGoMode: boolean
+  togglePokemonGoMode: () => void
+
+  userLocation: { lng: number; lat: number; heading: number } | null
+  setUserLocation: (loc: { lng: number; lat: number; heading: number } | null) => void
+
+  isSimulating: boolean
+  toggleSimulating: () => void
+
+  collectedItems: number
+  collectItem: () => void
+
+  avatarModel: 'human' | 'robot' | 'fox'
+  setAvatarModel: (model: 'human' | 'robot' | 'fox') => void
+
+  forecastHour: number
+  setForecastHour: (hour: number) => void
+  isForecastPlaying: boolean
+  toggleForecastPlaying: () => void
 }
 
 export const useMapStore = create<MapState>((set) => ({
@@ -46,4 +66,25 @@ export const useMapStore = create<MapState>((set) => ({
 
   flyToTarget: null,
   flyTo: (flyToTarget) => set({ flyToTarget }),
+
+  pokemonGoMode: false,
+  togglePokemonGoMode: () => set((state) => ({ pokemonGoMode: !state.pokemonGoMode })),
+
+  userLocation: null,
+  setUserLocation: (userLocation) => set({ userLocation }),
+
+  isSimulating: false,
+  toggleSimulating: () => set((state) => ({ isSimulating: !state.isSimulating })),
+
+  collectedItems: 0,
+  collectItem: () => set((state) => ({ collectedItems: state.collectedItems + 1 })),
+
+  avatarModel: 'human',
+  setAvatarModel: (avatarModel) => set({ avatarModel }),
+
+  forecastHour: 0,
+  setForecastHour: (forecastHour) => set({ forecastHour }),
+  isForecastPlaying: false,
+  toggleForecastPlaying: () => set((state) => ({ isForecastPlaying: !state.isForecastPlaying })),
 }))
+
