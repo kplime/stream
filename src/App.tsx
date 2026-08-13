@@ -3,7 +3,6 @@ import './App.css'
 import { ControlPanel } from './components/ControlPanel'
 import { Legend } from './components/Legend'
 import { MapView } from './components/MapView'
-import { ShapDiagnosisModal } from './components/ShapDiagnosisModal'
 import { TimeSlider } from './components/TimeSlider'
 import { useMapStore } from './store/useMapStore'
 
@@ -31,7 +30,11 @@ function App() {
         <MapView />
         <Legend />
         <TimeSlider />
-        <ShapDiagnosisModal />
+        {/* ShapDiagnosisModal은 렌더하지 않는다.
+            이 모달은 RiskScore.shap_factors(구조화 배열)를 읽는데 현재 파이프라인은
+            shap(원본 JSON 객체)만 저장해서 항상 본문이 빈 채로 떴다. 게다가
+            측정소를 클릭할 때마다 열려 SHAP이 정상 표시되는 지도 팝업을 덮었다.
+            컴포넌트 파일은 남겨 뒀으니 shap_factors를 채우게 되면 되살리면 된다. */}
       </main>
     </div>
   )
