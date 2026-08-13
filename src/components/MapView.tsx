@@ -31,8 +31,6 @@ import { traceUpstream, type TrackerResult } from '../lib/pollutionTracker'
 import { buildRiskSegments } from '../lib/riverSegments'
 import { useMapStore } from '../store/useMapStore'
 import { RIVER_NAMES, RIVER_PRIMARY_TRACK, TRACK_LABELS, type RiverName, type RiskScore } from '../types/risk'
-import { AvatarMarker } from './AvatarMarker'
-import { useUserLocation } from '../hooks/useUserLocation'
 
 const EMPTY_FC: FeatureCollection = { type: 'FeatureCollection', features: [] }
 
@@ -528,27 +526,8 @@ export function MapView() {
     flyToTarget(null)
   }, [mapReady, flyToRequest, flyToTarget])
 
-  // --- 3D 캐릭터 표출 시 (Zoom >= 14.5) 캐릭터 정중앙밀착 실시간 추적 ---
-  const userLocation = useMapStore((s) => s.userLocation)
-  useUserLocation()
-
-  useEffect(() => {
-    const map = mapRef.current
-    if (!map || !mapReady || !userLocation) return
-
-    const zoom = map.getZoom()
-    // 캐릭터 중심 시점 고정은 오직 최대 확대 한계점(Zoom >= 15.8)에 도달했을 때만 동작
-    if (show3dBuildings && zoom >= 15.8) {
-      map.easeTo({
-        center: [userLocation.lng, userLocation.lat],
-        zoom: 16.0,
-        pitch: 45,
-        bearing: userLocation.heading,
-        duration: 150,
-        easing: (t) => t,
-      })
-    }
-  }, [mapReady, show3dBuildings, userLocation])
+  // 위치 정보 기능 제거: GPS 추적(useUserLocation)과 사용자 위치 기반 카메라
+  // 자동 추종을 걷어냈다. 브라우저 위치 권한 요청도 더 이상 발생하지 않는다.
 
   // --- React 클릭 핸들러 (MapLibre 이벤트 대신 사용 — 3D pitch 환경에서 신뢰성 높음) ---
   const handleMapClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -630,8 +609,9 @@ export function MapView() {
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <div ref={containerRef} className="map-view" onClick={handleMapClick} />
 
-      {/* 3D 아바타 마커 — 지도 인스턴스가 준비된 뒤에만 렌더 */}
-      <AvatarMarker map={mapRef.current} />
+      {/* AvatarMarker는 렌더하지 않는다 — 사용자 GPS 위치에 붙어 있던
+          컴포넌트라 위치 기능을 뺀 지금은 표시할 좌표 자체가 없다.
+          고정 지점에 세우고 싶으면 좌표를 넘겨 되살릴 수 있다. */}
 
       {/* 역추적 결과 오버레이 패널 */}
       {trackerResult && (

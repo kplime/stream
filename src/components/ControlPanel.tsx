@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, ChevronLeft, ChevronRight, MapPin, Siren } from 'lucide-react'
+import { AlertTriangle, ChevronLeft, ChevronRight, Siren } from 'lucide-react'
 import { ForecastPanel } from './ForecastPanel'
 import { useDisplayScores } from '../hooks/useDisplayScores'
 import { useWeather } from '../hooks/useWeather'
@@ -61,16 +61,10 @@ export function ControlPanel() {
   const toggleShow3dBuildings = useMapStore((s) => s.toggleShow3dBuildings)
   const flyTo = useMapStore((s) => s.flyTo)
   const selectStation = useMapStore((s) => s.selectStation)
-  const userLocation = useMapStore((s) => s.userLocation)
 
   // 시간 슬라이더를 따라간다 — 지도는 예보인데 목록만 실시간이면 값이 어긋난다
   const { displayScores: scores, isForecast, forecastHour } = useDisplayScores()
   const { data: weather } = useWeather()
-
-  const handleLocateUser = () => {
-    const loc = userLocation ?? { lng: 129.0835, lat: 35.2045, heading: 45 }
-    flyTo({ lng: loc.lng, lat: loc.lat, zoom: 16.0 })
-  }
 
   // station_id 기준으로 A+B 묶기
   const stationsByRiver = useMemo(() => {
@@ -104,20 +98,6 @@ export function ControlPanel() {
             <p className="control-panel__subtitle-text">온천천 · 동천 · 괴정천 실시간 위험도 예측</p>
           </div>
         </header>
-
-      <div className="control-panel__banner-wrapper">
-        <div className="control-panel__btn-row">
-          <button
-            type="button"
-            className="locate-me-btn"
-            onClick={handleLocateUser}
-            title="현재 내 실시간 GPS 위치로 확대 이동"
-          >
-            <MapPin size={14} strokeWidth={2.25} />
-            내 위치로 확대 이동
-          </button>
-        </div>
-      </div>
 
       {/* 강수량 위젯 */}
       {weather && (
