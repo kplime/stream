@@ -123,9 +123,11 @@ function buildPopupHtml(
       ? 'medium'
       : 'low'
   const showTrackerBtn = maxRiskLevel !== 'low'
+  // event.stopPropagation(): 클릭이 지도 컨테이너로 전파되면 handleMapClick이
+  // 팝업을 지우고 다시 만들어버리므로 반드시 막아야 한다.
   const trackerBtn = showTrackerBtn
     ? `<button
-        onclick="window.__tracePollution('${stationId}', '${riverName}')"
+        onclick="event.stopPropagation();window.__tracePollution('${stationId}', '${riverName}')"
         style="margin-top:10px;width:100%;padding:5px 10px;background:#1d4ed8;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">
         🔍 오염원 역추적
       </button>`
@@ -212,8 +214,17 @@ export function MapView() {
   useEffect(() => { scoresRef.current = displayScores }, [displayScores])
   // liveScoresRef: 예보 모드에서도 SHAP 조회를 위해 실시간 scores 유지
   useEffect(() => { liveScoresRef.current = scores ?? [] }, [scores])
-  // weatherRef: 역추적 유속 계산용
-  useEffect(() => { weatherRef.current = weather?.precipitation_mm ?? 0 }, [weather])
+  // 역추적 유속 계산에 쓸 강수량
+  // 예보 모드에서는 해당 시점의 예보 강수량을, 실시간 모드에서는 현재 관측값을 쓴다
+  const effectiveRainMm = useMemo(() => {
+    if (forecastHour && forecast?.length) {
+      const pt = forecast.find((f) => f.hours_ahead === forecastHour && f.rain_mm != null)
+      if (pt) return pt.rain_mm
+    }
+    return weather?.precipitation_mm ?? 0
+  }, [forecastHour, forecast, weather])
+
+  useEffect(() => { weatherRef.current = effectiveRainMm }, [effectiveRainMm])
 
   const lineScores = useMemo(
     () => displayScores.filter((s) => RIVER_PRIMARY_TRACK[s.river_name as RiverName] === s.track),
@@ -409,30 +420,6 @@ export function MapView() {
       // 클릭은 React div onClick으로 처리 (아래 handleMapClick)
 
       setMapReady(true)
-
-      // 팝업 버튼 → 역추적 핸들러 (popup은 HTML 문자열이라 전역 함수로 연결)
-      ;(window as unknown as Record<string, unknown>)['__tracePollution'] = (
-        stationId: string,
-        riverName: string,
-      ) => {
-        const rain = weatherRef.current
-        const result = traceUpstream(stationId, riverName as RiverName, rain)
-        if (!result) return
-        setTrackerResult(result)
-        setActiveTrackerZone(1)
-
-        // 지도 레이어 업데이트 (첫 번째 존 — 1h 역추적)
-        const zone = result.zones[0]
-        if (!zone) return
-        const trackerSrc = map.getSource(TRACKER_SOURCE_ID) as maplibregl.GeoJSONSource | undefined
-        const trackerPtSrc = map.getSource(TRACKER_POINT_SOURCE_ID) as maplibregl.GeoJSONSource | undefined
-        trackerSrc?.setData(
-          turf.featureCollection([turf.lineString(zone.segmentCoords)])
-        )
-        trackerPtSrc?.setData(
-          turf.featureCollection([turf.point(zone.sourcePoint, { label: zone.label })])
-        )
-      }
     })
 
     return () => {
@@ -464,6 +451,29 @@ export function MapView() {
       setHasFitBounds(true)
     }
   }, [mapReady, riverSegments, stationFeaturesA, stationFeaturesB, hasFitBounds])
+
+  // --- 팝업 버튼 → 역추적 핸들러 등록 ---
+  // 팝업은 HTML 문자열이라 React 핸들러를 붙일 수 없어 전역 함수로 연결한다.
+  // riverGeometry가 로드된 뒤 최신 값을 참조하도록 별도 effect로 분리.
+  useEffect(() => {
+    if (!mapReady) return
+    const w = window as unknown as Record<string, unknown>
+    w['__tracePollution'] = (stationId: string, riverName: string) => {
+      const result = traceUpstream(
+        stationId,
+        riverName as RiverName,
+        riverGeometry,
+        weatherRef.current,
+      )
+      if (!result) {
+        console.warn('[tracker] 역추적 실패 — 유로 데이터 없음:', riverName)
+        return
+      }
+      setTrackerResult(result)
+      setActiveTrackerZone(result.zones[0]?.lookbackHours ?? 1)
+    }
+    return () => { delete w['__tracePollution'] }
+  }, [mapReady, riverGeometry])
 
   // --- 오염원 역추적 존 전환 시 지도 업데이트 ---
   useEffect(() => {
@@ -623,6 +633,10 @@ export function MapView() {
               <span style={{ marginLeft: '6px', color: '#64748b' }}>
                 (강수 {trackerResult.rain_mm_per_hr.toFixed(1)} mm/h · Manning 추정)
               </span>
+            </div>
+            <div style={{ marginTop: '3px' }}>
+              <span style={{ color: '#cbd5e1' }}>추적 가능 상류:</span>{' '}
+              {trackerResult.upstreamAvailableKm.toFixed(2)} km
             </div>
           </div>
 
