@@ -1,3 +1,4 @@
+import { AlertTriangle, Bot, Clock, Siren, X } from 'lucide-react'
 import { useMapStore } from '../store/useMapStore'
 import { useRiskScores } from '../hooks/useRiskScores'
 import { TRACK_LABELS, type RiskScore } from '../types/risk'
@@ -44,15 +45,18 @@ export function ShapDiagnosisModal() {
             className="shap-modal__close-btn"
             onClick={() => selectStation(null)}
           >
-            ✕
+            <X size={18} />
           </button>
         </header>
 
         {stationData.sensor_missing && (
           <div className="shap-alert shap-alert--warning">
-            <strong>⚠️ 센서 공백 지역 (공공데이터 자동측정망 미설치)</strong>
+            <strong>
+              <AlertTriangle size={14} strokeWidth={2.25} />
+              센서 공백 지역 (공공데이터 자동측정망 미설치)
+            </strong>
             <p>
-              괴정천 상류/중류 지점은 실시간 자동측정망 13개소에 포함되지 않습니다. 
+              괴정천 상류/중류 지점은 실시간 자동측정망 13개소에 포함되지 않습니다.
               과거 수질측정망(BOD)과 인접 기상청 강우 관측소 데이터로 Nowcast/DLM 추론을 실행합니다.
             </p>
           </div>
@@ -60,9 +64,12 @@ export function ShapDiagnosisModal() {
 
         {stationData.anomaly_detected && (
           <div className="shap-alert shap-alert--danger">
-            <strong>🚨 Isolation Forest 비지도 이상치 탐지 발령</strong>
+            <strong>
+              <Siren size={14} strokeWidth={2.25} />
+              Isolation Forest 비지도 이상치 탐지 발령
+            </strong>
             <p>
-              강수량 대비 탁도 및 DO 저하 비율이 정상 범주를 벗어났습니다. 
+              강수량 대비 탁도 및 DO 저하 비율이 정상 범주를 벗어났습니다.
               우천시 월류(CSO 오수유입) 또는 미측정 요인에 의한 급성 위험 신호입니다.
             </p>
           </div>
@@ -70,7 +77,8 @@ export function ShapDiagnosisModal() {
 
         <section className="shap-modal__section">
           <h3>
-            🤖 AI 위험도 원인 분해 (XGBoost + SHAP)
+            <Bot size={16} strokeWidth={2.25} />
+            AI 위험도 원인 분해 (XGBoost + SHAP)
           </h3>
           <p className="shap-modal__desc">
             복합 원인 입증 불가능 문제를 해결하기 위해 SHAP(Explainable AI)으로 각 환경 변수의 기여도를 도출했습니다.
@@ -101,7 +109,10 @@ export function ShapDiagnosisModal() {
 
         {track === 'B' && (
           <section className="shap-modal__section shap-modal__section--highlight">
-            <h3>⏱️ 강수 연동 지연 효과 (Distributed Lag Model)</h3>
+            <h3>
+              <Clock size={16} strokeWidth={2.25} />
+              강수 연동 지연 효과 (Distributed Lag Model)
+            </h3>
             <div className="shap-lag-card">
               <div className="shap-lag-metric">
                 <span className="shap-lag-number">{stationData.lag_hours ?? 3.0}시간</span>

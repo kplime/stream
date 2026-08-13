@@ -1,14 +1,41 @@
+:root {
+  /* Apple 시스템 다크모드에서 따온 토큰. 페이지 배경(surface-1)보다 한 단계
+     밝은 "그룹 카드"(surface-2)를 얹는 2단 구조 + 얇은 헤어라인 구분선 +
+     절제된 단색 accent(파랑은 스위치/버튼에만) — iOS 설정 앱의 grouped list
+     패턴을 그대로 따른다. */
+  --surface-1: #1c1c1e;
+  --surface-2: #2c2c2e;
+  --surface-3: #3a3a3c;
+  --hairline: rgba(255, 255, 255, 0.09);
+  --text-primary: rgba(255, 255, 255, 0.94);
+  --text-secondary: rgba(235, 235, 245, 0.6);
+  --text-tertiary: rgba(235, 235, 245, 0.35);
+  --accent: #0a84ff;
+  --accent-soft: rgba(10, 132, 255, 0.18);
+  --accent-border: rgba(10, 132, 255, 0.5);
+  --radius-control: 10px;
+  --radius-card: 14px;
+  --radius-widget: 20px;
+  --shadow-card: 0 16px 40px rgba(0, 0, 0, 0.45);
+  /* legacy aliases (다른 컴포넌트 CSS와의 하위 호환) */
+  --border: var(--hairline);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --accent-strong: var(--accent);
+  --radius-sm: var(--radius-control);
+  --radius-md: var(--radius-card);
+  --radius-lg: var(--radius-widget);
+}
+
 .app {
-  display: flex;
+  position: relative;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
 }
 
 .app__map {
-  position: relative;
-  flex: 1;
-  min-width: 0;
+  position: absolute;
+  inset: 0;
 }
 
 .map-view {
@@ -23,53 +50,94 @@
 /* ---------- control panel ---------- */
 
 .control-panel {
-  width: 320px;
-  flex: none;
+  /* 사이드바만 라이트/반투명 유리 톤으로 오버라이드 — 이 아래 자식 규칙들은
+     전부 var(--surface-*), var(--text-*) 토큰을 쓰고 있어서 여기서 값만
+     다시 정의하면 캐스케이드로 전부 같이 밝아진다. */
+  --surface-1: rgba(246, 246, 248, 0.16);
+  --surface-2: rgba(255, 255, 255, 0.72);
+  --surface-3: rgba(0, 0, 0, 0.05);
+  --hairline: rgba(0, 0, 0, 0.08);
+  --text-primary: rgba(0, 0, 0, 0.88);
+  --text-secondary: rgba(60, 60, 67, 0.6);
+  --text-tertiary: rgba(60, 60, 67, 0.32);
+  --accent: #007aff;
+  --accent-soft: rgba(0, 122, 255, 0.14);
+  --accent-border: rgba(0, 122, 255, 0.4);
+
+  /* 지도 옆에 나란히 배치되는 flex 패널이 아니라, 지도 위에 뜨는 카드로 —
+     그래야 backdrop-filter가 실제로 지도를 블러링해서 비춘다 (레이아웃상
+     뒤에 아무것도 없으면 반투명은 그냥 밋밋한 단색으로 보인다). position:
+     absolute라 .app__map(flex:1)이 남은 flex item 없이 폭 전체를 차지하게
+     되므로 지도 자체도 자동으로 풀블리드가 된다. */
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  bottom: 16px;
+  width: 300px;
+  z-index: 1000;
   display: flex;
   flex-direction: column;
-  background: #1a1a19;
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--surface-1);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  border: 0.5px solid var(--hairline);
+  border-radius: var(--radius-widget);
+  box-shadow: var(--shadow-card);
   overflow-y: auto;
-  padding: 20px 18px;
-  gap: 20px;
+  padding: 24px 18px;
+  gap: 28px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-3) transparent;
+  font-feature-settings: 'ss01' 1;
+}
+
+.control-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.control-panel::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 8px;
 }
 
 .control-panel__header {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 2px;
+}
+
+/* 모바일 바텀시트 펼침/접힘 토글 — 데스크톱에서는 사이드바가 항상 완전히
+   보이는 고정 카드라 필요 없으므로 기본은 숨김, 아래 모바일 미디어쿼리에서만
+   보이게 한다. */
+.control-panel-toggle {
+  display: none;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--surface-2);
+  border: none;
+  border-radius: 999px;
+  color: var(--text-secondary);
+  cursor: pointer;
 }
 
 .control-panel__header h1 {
-  font-size: 17px;
+  font-size: 21px;
   font-weight: 700;
   margin: 0;
-  line-height: 1.35;
-}
-
-.status-pill {
-  align-self: flex-start;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 9px;
-  border-radius: 999px;
-  letter-spacing: 0.01em;
-}
-
-.status-pill--live {
-  background: rgba(12, 163, 12, 0.18);
-  color: #3ddc3d;
-}
-
-.status-pill--mock {
-  background: rgba(250, 178, 25, 0.18);
-  color: #fab219;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
 }
 
 .control-section {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .control-section--grow {
@@ -95,97 +163,191 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #898781;
+  color: var(--text-tertiary);
   margin: 0;
+  padding: 0 4px;
 }
 
+/* iOS 스타일 세그먼트 컨트롤: accent는 스위치/버튼에만 쓰고, 여기는 중립 톤의
+   "떠 있는 알약" 형태로 절제한다. */
 .segmented {
   display: flex;
-  background: #0d0d0d;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 3px;
-  gap: 3px;
+  background: rgba(120, 120, 128, 0.24);
+  border-radius: var(--radius-control);
+  padding: 2px;
+  gap: 2px;
 }
 
 .segmented__item {
   flex: 1;
   border: none;
   background: transparent;
-  color: #c3c2b7;
-  font-size: 12px;
+  color: var(--text-secondary);
+  font-size: 12.5px;
   font-weight: 600;
   padding: 8px 6px;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.segmented__item:hover {
+  color: var(--text-primary);
 }
 
 .segmented__item--active {
-  background: #2a78d6;
-  color: #ffffff;
+  background: #ffffff;
+  color: #000000;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.16);
 }
 
+/* 그룹 리스트 카드: 행마다 개별 배경/보더를 주는 대신, 컨테이너 하나가
+   카드가 되고 행 사이는 얇은 헤어라인으로만 구분한다 (iOS 설정 앱 패턴). */
 .chip-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-direction: column;
+  background: var(--surface-2);
+  border-radius: var(--radius-card);
+  overflow: hidden;
 }
 
 .chip {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #c3c2b7;
-  background: #0d0d0d;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 7px;
-  padding: 6px 10px;
+  justify-content: space-between;
+  width: 100%;
+  gap: 10px;
+  font-size: 13.5px;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  border-bottom: 0.5px solid var(--hairline);
+  padding: 11px 14px;
   cursor: pointer;
+  transition: background 0.15s ease;
 }
 
-.chip input {
-  accent-color: #2a78d6;
+.chip:last-child {
+  border-bottom: none;
+}
+
+.chip:hover {
+  background: var(--surface-3);
+}
+
+/* "하천 표시" 섹션의 chip-row 바로 아래, 독립된 단일 행(3D 건물)은
+   그 자체로 카드가 된다 — 그룹을 나눠서 관련 없는 토글을 시각적으로 분리. */
+.control-section > .chip {
+  border-radius: var(--radius-card);
+  background: var(--surface-2);
+  border-bottom: none;
+}
+
+/* 체크박스를 iOS 스위치처럼 그린다. 라벨 텍스트(익명 flex item, order 0)
+   뒤로 보내기 위해 order:1만 주면 DOM/마크업은 그대로 두고 시각 순서만
+   "라벨 — 스위치"로 뒤집을 수 있다. */
+.chip input[type='checkbox'] {
+  order: 1;
+  flex: none;
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  width: 42px;
+  height: 25px;
+  border-radius: 999px;
+  background: rgba(120, 120, 128, 0.32);
+  border: none;
+  margin: 0;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.chip input[type='checkbox']::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 21px;
+  height: 21px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+  transition: transform 0.2s ease;
+}
+
+.chip input[type='checkbox']:checked {
+  background: #30d158;
+}
+
+.chip input[type='checkbox']:checked::before {
+  transform: translateX(17px);
 }
 
 .station-list {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 20px;
   padding-right: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-3) transparent;
+}
+
+.station-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.station-list::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 6px;
 }
 
 .station-list__group h3 {
   font-size: 12px;
   font-weight: 600;
-  color: #ffffff;
-  margin: 0 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  margin: 0 0 8px;
+  padding: 0 4px;
+}
+
+.station-list__rows {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-2);
+  border-radius: var(--radius-card);
+  overflow: hidden;
 }
 
 .station-row {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   background: transparent;
   border: none;
-  border-radius: 6px;
-  padding: 6px 6px;
-  color: #c3c2b7;
-  font-size: 12.5px;
+  border-bottom: 0.5px solid var(--hairline);
+  border-radius: 0;
+  padding: 10px 14px;
+  color: var(--text-primary);
+  font-size: 13px;
   cursor: pointer;
   text-align: left;
+  transition: background 0.15s ease;
+}
+
+.station-row:last-child {
+  border-bottom: none;
 }
 
 .station-row:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #ffffff;
+  background: var(--surface-3);
 }
 
 .station-row__dot {
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   flex: none;
 }
@@ -195,55 +357,73 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 450;
 }
 
 .station-row__score {
   font-variant-numeric: tabular-nums;
-  color: #898781;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
 }
 
 /* ---------- legend ---------- */
 
 .legend {
+  /* 사이드바가 이제 지도 위에 뜨는 카드(왼쪽 16px + 300px 폭)라, 그 아래
+     겹치지 않도록 오른쪽으로 밀어낸다. */
+  --surface-1: rgba(246, 246, 248, 0.16);
+  --text-primary: rgba(0, 0, 0, 0.88);
+  --text-secondary: rgba(60, 60, 67, 0.6);
+  --text-tertiary: rgba(60, 60, 67, 0.32);
+  --hairline: rgba(0, 0, 0, 0.08);
+
   position: absolute;
-  left: 16px;
+  left: 332px;
   bottom: 24px;
-  background: rgba(26, 26, 25, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  padding: 12px 14px;
-  backdrop-filter: blur(6px);
-  color: #ffffff;
+  background: var(--surface-1);
+  border: 0.5px solid var(--hairline);
+  border-radius: var(--radius-widget);
+  padding: 12px 18px;
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-card);
 }
 
 .legend__title {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  color: #c3c2b7;
-  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  margin-bottom: 9px;
 }
 
 .legend__items {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  gap: 16px;
 }
 
 .legend__item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 .legend__item--muted {
-  color: #898781;
+  color: var(--text-tertiary);
 }
 
 .legend__swatch {
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
   flex: none;
 }
 
@@ -726,19 +906,26 @@
 /* ---------- Subtitle & Status Badges ---------- */
 
 .control-panel__subtitle-text {
-  margin: 2px 0 0;
-  font-size: 11.5px;
-  color: #a0a098;
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.badge-missing,
+.badge-anomaly {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  vertical-align: -2px;
 }
 
 .badge-missing {
-  margin-left: 4px;
-  font-size: 11px;
+  color: #f59e0b;
 }
 
 .badge-anomaly {
-  margin-left: 4px;
-  font-size: 11px;
+  color: #ef4444;
   animation: pulse-alert 1.5s infinite;
 }
 
@@ -755,23 +942,25 @@
 }
 
 .pledge-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   width: 100%;
-  padding: 10px 12px;
-  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  padding: 11px 12px;
+  background: var(--accent);
   color: #ffffff;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 600;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
-  transition: all 0.2s ease;
+  transition: filter 0.15s ease;
   text-align: center;
 }
 
 .pledge-trigger-btn:hover {
-  filter: brightness(1.15);
-  transform: translateY(-1px);
+  filter: brightness(1.12);
 }
 
 .pledge-modal-backdrop {
@@ -824,10 +1013,12 @@
 }
 
 .pledge-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: none;
   color: #a1a1aa;
-  font-size: 18px;
   cursor: pointer;
 }
 
@@ -897,6 +1088,10 @@
 }
 
 .pledge-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   margin-top: 12px;
   width: 100%;
   padding: 8px;
@@ -934,7 +1129,7 @@
 .shap-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(6px);
   z-index: 10000;
   display: flex;
@@ -944,14 +1139,22 @@
 }
 
 .shap-modal {
+  /* 나머지 위젯(사이드바/범례/예보 바)과 같은 라이트 유리 톤. */
+  --text-primary: rgba(0, 0, 0, 0.88);
+  --text-secondary: rgba(60, 60, 67, 0.6);
+  --text-tertiary: rgba(60, 60, 67, 0.32);
+  --hairline: rgba(0, 0, 0, 0.08);
+
   width: 100%;
   max-width: 540px;
-  background: #121214;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 16px;
+  background: rgba(246, 246, 248, 0.78);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  border: 0.5px solid var(--hairline);
+  border-radius: var(--radius-widget);
   padding: 24px;
-  color: #f4f4f5;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-card);
   animation: modal-pop 0.25s ease-out;
 }
 
@@ -985,40 +1188,49 @@
   font-size: 17px;
   font-weight: 700;
   margin: 0;
+  color: var(--text-primary);
 }
 
 .shap-modal__subtitle {
   font-size: 12px;
-  color: #a1a1aa;
+  color: var(--text-secondary);
   margin: 2px 0 0;
 }
 
 .shap-modal__close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: none;
-  color: #71717a;
-  font-size: 20px;
+  color: var(--text-tertiary);
   cursor: pointer;
 }
 
 .shap-alert {
   padding: 12px 14px;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   margin-bottom: 16px;
   font-size: 12.5px;
   line-height: 1.45;
 }
 
+.shap-alert strong {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .shap-alert--warning {
-  background: rgba(245, 158, 11, 0.12);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  color: #fbbf24;
+  background: rgba(255, 149, 0, 0.12);
+  border: 1px solid rgba(255, 149, 0, 0.3);
+  color: #a15c00;
 }
 
 .shap-alert--danger {
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #f87171;
+  background: rgba(255, 59, 48, 0.12);
+  border: 1px solid rgba(255, 59, 48, 0.3);
+  color: #c0261c;
 }
 
 .shap-modal__section {
@@ -1026,15 +1238,18 @@
 }
 
 .shap-modal__section h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   font-size: 14px;
   font-weight: 600;
   margin: 0 0 4px;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .shap-modal__desc {
   font-size: 12px;
-  color: #a1a1aa;
+  color: var(--text-secondary);
   margin: 0 0 14px;
 }
 
@@ -1042,10 +1257,10 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background: #18181b;
+  background: rgba(0, 0, 0, 0.04);
   padding: 14px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--hairline);
 }
 
 .shap-factor-row {
@@ -1062,19 +1277,19 @@
 
 .shap-factor-label {
   font-size: 12px;
-  color: #e4e4e7;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
 .shap-factor-val {
   font-size: 11px;
-  color: #71717a;
+  color: var(--text-tertiary);
 }
 
 .shap-factor-bar-bg {
   flex: 1;
   height: 8px;
-  background: #27272a;
+  background: rgba(0, 0, 0, 0.08);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -1086,11 +1301,11 @@
 }
 
 .shap-factor-bar--pos {
-  background: linear-gradient(90deg, #f97316 0%, #ef4444 100%);
+  background: linear-gradient(90deg, #ff9500 0%, #ff3b30 100%);
 }
 
 .shap-factor-bar--neg {
-  background: linear-gradient(90deg, #3b82f6 0%, #10b981 100%);
+  background: linear-gradient(90deg, #007aff 0%, #30d158 100%);
 }
 
 .shap-factor-impact {
@@ -1098,15 +1313,15 @@
   text-align: right;
   font-size: 12px;
   font-weight: 700;
-  color: #f4f4f5;
+  color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
 
 .shap-modal__section--highlight {
-  background: #1e1b4b;
-  border: 1px solid #4338ca;
+  background: rgba(88, 86, 214, 0.08);
+  border: 1px solid rgba(88, 86, 214, 0.3);
   padding: 14px;
-  border-radius: 10px;
+  border-radius: var(--radius-card);
 }
 
 .shap-lag-card {
@@ -1120,28 +1335,28 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.04);
   padding: 10px 14px;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   min-width: 100px;
 }
 
 .shap-lag-number {
   font-size: 20px;
   font-weight: 800;
-  color: #818cf8;
+  color: #5856d6;
 }
 
 .shap-lag-label {
   font-size: 10px;
-  color: #c7d2fe;
+  color: #5856d6;
   text-align: center;
 }
 
 .shap-lag-text {
   font-size: 12px;
   line-height: 1.5;
-  color: #e0e7ff;
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -1149,22 +1364,22 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--hairline);
   padding-top: 14px;
 }
 
 .shap-modal__time {
   font-size: 11px;
-  color: #71717a;
+  color: var(--text-tertiary);
 }
 
 .shap-modal__btn-primary {
   padding: 8px 20px;
-  background: #2563eb;
+  background: #007aff;
   color: #ffffff;
   font-weight: 600;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   cursor: pointer;
 }
 
@@ -1584,46 +1799,62 @@
 }
 
 .locate-me-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   flex: 1.2;
-  padding: 8px 6px;
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  padding: 9px 6px;
+  background: var(--accent-strong);
   color: #ffffff;
   font-size: 11.5px;
   font-weight: 700;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3);
-  transition: all 0.2s ease;
+  transition: filter 0.15s ease;
 }
 
 .locate-me-btn:hover {
-  filter: brightness(1.15);
+  filter: brightness(1.12);
 }
 
 /* ---------- Digital Twin 48-Hour Forecast Time Slider Card ---------- */
 
 .forecast-slider-card {
+  /* 다른 두 위젯(사이드바 카드, 범례)과 같은 라이트 유리 톤으로 통일. 자식
+     요소들(뱃지·플레이 버튼·아이콘)도 전부 var(--surface-*)/var(--accent)
+     토큰을 쓰고 있어서 여기서 재정의만 하면 캐스케이드로 같이 밝아진다. */
+  --surface-1: rgba(246, 246, 248, 0.16);
+  --surface-2: rgba(0, 0, 0, 0.05);
+  --surface-3: rgba(0, 0, 0, 0.09);
+  --text-primary: rgba(0, 0, 0, 0.88);
+  --text-secondary: rgba(60, 60, 67, 0.6);
+  --text-tertiary: rgba(60, 60, 67, 0.32);
+  --hairline: rgba(0, 0, 0, 0.08);
+  --accent: #007aff;
+  --accent-soft: rgba(0, 122, 255, 0.14);
+  --accent-border: rgba(0, 122, 255, 0.4);
+
   position: absolute;
   bottom: 24px;
-  left: calc(50% + 160px);
+  left: calc(50% + 166px);
   transform: translateX(-50%);
   z-index: 900;
-  width: calc(100% - 440px);
+  width: calc(100% - 452px);
   max-width: 640px;
   min-width: 320px;
-  background: rgba(15, 23, 42, 0.88);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 16px;
-  padding: 14px 20px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45), 0 0 1px rgba(255, 255, 255, 0.2);
-  color: #f8fafc;
+  background: var(--surface-1);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 0.5px solid var(--hairline);
+  border-radius: var(--radius-widget);
+  padding: 16px 20px;
+  box-shadow: var(--shadow-card);
+  color: var(--text-primary);
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  transition: all 0.3s ease;
+  gap: 14px;
 }
 
 .forecast-header {
@@ -1636,24 +1867,32 @@
 .forecast-title-group {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .forecast-icon {
-  font-size: 20px;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
 }
 
 .forecast-title {
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 700;
-  color: #f8fafc;
+  color: var(--text-primary);
   margin: 0;
   letter-spacing: -0.01em;
 }
 
 .forecast-subtitle {
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--text-tertiary);
   margin: 2px 0 0 0;
 }
 
@@ -1664,116 +1903,308 @@
 }
 
 .forecast-badge {
-  font-size: 11.5px;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 20px;
-  background: rgba(51, 65, 85, 0.7);
-  color: #cbd5e1;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.25s ease;
-}
-
-.forecast-badge--active {
-  background: rgba(37, 99, 235, 0.25);
-  color: #60a5fa;
-  border-color: rgba(96, 165, 250, 0.4);
-  box-shadow: 0 0 10px rgba(37, 99, 235, 0.25);
-}
-
-.forecast-reset-btn {
-  background: rgba(239, 68, 68, 0.18);
-  color: #fca5a5;
-  border: 1px solid rgba(239, 68, 68, 0.35);
   font-size: 11px;
   font-weight: 600;
-  padding: 4px 9px;
-  border-radius: 14px;
-  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  white-space: nowrap;
   transition: all 0.2s ease;
 }
 
+.forecast-badge--active {
+  background: var(--accent-soft);
+  color: #93c5fd;
+  border-color: var(--accent-border);
+}
+
+.forecast-reset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
 .forecast-reset-btn:hover {
-  background: rgba(239, 68, 68, 0.3);
-  color: #ffffff;
+  background: var(--surface-3);
+  color: var(--text-primary);
 }
 
 .forecast-controls {
   display: flex;
   align-items: center;
-  gap: 14px;
-}
-
-.forecast-play-btn {
-  padding: 7px 14px;
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  color: #ffffff;
-  border: none;
-  border-radius: 10px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
-  transition: all 0.2s ease;
-  white-space: nowrap;
-}
-
-.forecast-play-btn:hover {
-  filter: brightness(1.15);
-  transform: translateY(-1px);
-}
-
-.forecast-play-btn--active {
-  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
-  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.4);
+  gap: 16px;
 }
 
 .forecast-track-wrapper {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .forecast-range-input {
+  -webkit-appearance: none;
+  appearance: none;
   width: 100%;
-  height: 6px;
+  height: 4px;
   border-radius: 4px;
-  background: linear-gradient(90deg, #10b981 0%, #3b82f6 50%, #ef4444 100%);
+  /* 트랙 색상은 파랑 단색으로 통일하고, 시간이 멀어질수록(불확실성이
+     커질수록) 더 진하게 — 여러 색을 섞는 대신 투명도만으로 시간축을
+     표현한다. */
+  background: linear-gradient(90deg, rgba(0, 122, 255, 0.18) 0%, rgba(0, 122, 255, 1) 100%);
   outline: none;
-  accent-color: #60a5fa;
+  cursor: pointer;
+  margin: 8px 0;
+}
+
+.forecast-range-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 3px solid var(--accent-strong);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+
+.forecast-range-input::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 3px solid var(--accent-strong);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
   cursor: pointer;
 }
 
 .forecast-ticks {
   display: flex;
   justify-content: space-between;
-  font-size: 10.5px;
-  color: #64748b;
-  padding: 0 2px;
+  font-size: 10px;
+  color: var(--text-tertiary);
+  padding: 0 1px;
 }
 
 .forecast-ticks span {
   cursor: pointer;
-  transition: color 0.2s ease;
+  transition: color 0.15s ease;
 }
 
 .forecast-ticks span:hover {
-  color: #94a3b8;
+  color: var(--text-secondary);
 }
 
 .forecast-ticks span.tick--active {
-  color: #60a5fa;
+  color: #93c5fd;
   font-weight: 700;
 }
 
 @media (max-width: 768px) {
-  .forecast-slider-card {
-    left: 50%;
-    width: calc(100% - 32px);
-    bottom: 16px;
-    padding: 12px;
+  /* 사이드바가 지도의 80%를 가리던 걸, 기본은 헤더만 보이는 얇은 바텀시트로
+     접어두고 토글 버튼으로 펼치는 방식으로 바꾼다. */
+  .control-panel {
+    top: auto;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    width: auto;
+    max-height: 96px;
+    padding: 16px;
+    gap: 18px;
+    overflow: hidden;
+    transition: max-height 0.28s ease;
   }
+
+  .control-panel.control-panel--expanded {
+    max-height: 78vh;
+    overflow-y: auto;
+  }
+
+  .control-panel-toggle {
+    display: inline-flex;
+  }
+
+  /* 범례는 접힌 바텀시트와 안 겹치게 위로 옮긴다. */
+  .legend {
+    top: 8px;
+    left: 8px;
+    bottom: auto;
+  }
+
+  .legend__items {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+
+  /* 예보 바는 접힌 바텀시트 바로 위에 뜨게 하고(펼쳐지면 시트가 위를 덮으며
+     자연스럽게 가려짐), 폭은 좌우 여백만 남기고 꽉 채운다. */
+  .forecast-slider-card {
+    left: 8px;
+    right: 8px;
+    bottom: 112px;
+    width: auto;
+    max-width: none;
+    min-width: 0;
+    transform: none;
+    padding: 12px 14px;
+  }
+}
+
+/* ---------- High-Performance 3D Vector PokéStop Station Markers ---------- */
+
+.pokestop-3d-marker-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  z-index: 950 !important;
+  pointer-events: auto;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.pokestop-3d-marker-wrapper:hover {
+  transform: scale(1.22);
+  z-index: 999 !important;
+}
+
+.pokestop-3d-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 3px 9px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #f8fafc;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  white-space: nowrap;
+  margin-bottom: 4px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.pokestop-3d-badge .badge-name {
+  color: #e2e8f0;
+}
+
+.pokestop-3d-badge .badge-score {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 8px;
+  color: #ffffff;
+}
+
+/* 3D Visual Object Structure */
+.pokestop-visual-3d {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  width: 48px;
+  perspective: 600px;
+}
+
+.pokestop-head-group {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-style: preserve-3d;
+  animation: pokestop-float-anim 3s infinite ease-in-out;
+}
+
+@keyframes pokestop-float-anim {
+  0%, 100% { transform: translateY(0px) rotateX(15deg); }
+  50% { transform: translateY(-8px) rotateX(25deg); }
+}
+
+.pokestop-ring-outer {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid var(--risk-color, #3b82f6);
+  background: rgba(15, 23, 42, 0.5);
+  box-shadow: 0 0 14px var(--risk-color, #3b82f6), inset 0 0 8px var(--risk-color, #3b82f6);
+  animation: pokestop-spin-anim 4s infinite linear;
+}
+
+@keyframes pokestop-spin-anim {
+  0% { transform: rotateY(0deg) rotateZ(0deg); }
+  50% { transform: rotateY(180deg) rotateZ(180deg); }
+  100% { transform: rotateY(360deg) rotateZ(360deg); }
+}
+
+.pokestop-glass-disc {
+  position: relative;
+  z-index: 2;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(4px);
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 10px var(--risk-color, #3b82f6);
+}
+
+.pokestop-core-icon {
+  font-size: 13px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+  animation: pokestop-pulse-core 2s infinite ease-in-out;
+}
+
+@keyframes pokestop-pulse-core {
+  0%, 100% { transform: scale(0.9); }
+  50% { transform: scale(1.15); }
+}
+
+.pokestop-beam-pillar {
+  width: 3px;
+  height: 20px;
+  background: linear-gradient(to bottom, var(--risk-color, #3b82f6) 0%, rgba(255, 255, 255, 0.15) 100%);
+  box-shadow: 0 0 10px var(--risk-color, #3b82f6);
+  border-radius: 2px;
+}
+
+.pokestop-base-plate {
+  width: 24px;
+  height: 6px;
+  background: rgba(30, 41, 59, 0.9);
+  border: 1.5px solid var(--risk-color, #3b82f6);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--risk-color, #3b82f6);
+}
+
+.pokestop-ground-shadow {
+  width: 26px;
+  height: 8px;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0) 75%);
+  border-radius: 50%;
+  margin-top: 1px;
 }
 
 

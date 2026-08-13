@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { MapPin, Vote, X } from 'lucide-react'
 import { useMapStore } from '../store/useMapStore'
 
 export function CandidatePledgeBanner() {
@@ -18,7 +19,8 @@ export function CandidatePledgeBanner() {
         className="pledge-trigger-btn"
         onClick={() => setOpen(true)}
       >
-        🗳️ [NPC 연계] 이태엽 공약 2 & 수질 현황 검증
+        <Vote size={15} strokeWidth={2.25} />
+        [NPC 연계] 이태엽 공약 2 & 수질 현황 검증
       </button>
 
       {open && (
@@ -34,7 +36,7 @@ export function CandidatePledgeBanner() {
                 className="pledge-close-btn"
                 onClick={() => setOpen(false)}
               >
-                ✕
+                <X size={18} />
               </button>
             </header>
 
@@ -71,7 +73,8 @@ export function CandidatePledgeBanner() {
                     setOpen(false)
                   }}
                 >
-                  📍 센서 공백 지역 (괴정천) 지도로 이동
+                  <MapPin size={14} strokeWidth={2.25} />
+                  센서 공백 지역 (괴정천) 지도로 이동
                 </button>
               </div>
 

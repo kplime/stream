@@ -1,10 +1,10 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { AlertTriangle, ChevronDown, ChevronUp, MapPin, Siren } from 'lucide-react'
 import { ForecastPanel } from './ForecastPanel'
 import { useDisplayScores } from '../hooks/useDisplayScores'
 import { useWeather } from '../hooks/useWeather'
-import { RISK_COLORS } from '../lib/mapStyle'
-import { CandidatePledgeBanner } from './CandidatePledgeBanner'
 import { useMapStore } from '../store/useMapStore'
+import { RISK_COLORS } from '../lib/mapStyle'
 import {
   NO_REALTIME_SENSOR_RIVERS,
   RIVER_NAMES,
@@ -17,6 +17,9 @@ import {
 const TRACKS: Track[] = ['A', 'B']
 
 export function ControlPanel() {
+  // 모바일에서만 쓰는 바텀시트 펼침 상태 (데스크톱은 CSS에서 토글 버튼 자체를 숨김).
+  const [expanded, setExpanded] = useState(false)
+
   const track = useMapStore((s) => s.track)
   const setTrack = useMapStore((s) => s.setTrack)
   const visibleRivers = useMapStore((s) => s.visibleRivers)
@@ -28,7 +31,7 @@ export function ControlPanel() {
   const userLocation = useMapStore((s) => s.userLocation)
 
   // 시간 슬라이더를 따라간다 — 지도는 예보인데 목록만 실시간이면 값이 어긋난다
-  const { displayScores: scores, usingMock, isForecast, forecastHour } = useDisplayScores()
+  const { displayScores: scores, isForecast, forecastHour } = useDisplayScores()
   const { data: weather } = useWeather()
 
   const handleLocateUser = () => {
@@ -51,19 +54,23 @@ export function ControlPanel() {
   }, [scores])
 
   return (
-    <aside className="control-panel">
+    <aside className={`control-panel ${expanded ? 'control-panel--expanded' : ''}`}>
       <header className="control-panel__header">
         <div>
           <h1>부산 도심하천 수질예보</h1>
           <p className="control-panel__subtitle-text">온천천 · 동천 · 괴정천 실시간 위험도 예측</p>
         </div>
-        <span className={`status-pill ${usingMock ? 'status-pill--mock' : 'status-pill--live'}`}>
-          {usingMock ? '데모 모드 (Mock)' : '실시간 연동'}
-        </span>
+        <button
+          type="button"
+          className="control-panel-toggle"
+          onClick={() => setExpanded((v) => !v)}
+          aria-label={expanded ? '패널 접기' : '패널 펼치기'}
+        >
+          {expanded ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+        </button>
       </header>
 
       <div className="control-panel__banner-wrapper">
-        <CandidatePledgeBanner />
         <div className="control-panel__btn-row">
           <button
             type="button"
@@ -71,7 +78,8 @@ export function ControlPanel() {
             onClick={handleLocateUser}
             title="현재 내 실시간 GPS 위치로 확대 이동"
           >
-            📍 내 위치로 확대 이동
+            <MapPin size={14} strokeWidth={2.25} />
+            내 위치로 확대 이동
           </button>
         </div>
       </div>
@@ -177,44 +185,53 @@ export function ControlPanel() {
                   <span className="group-badge group-badge--warn">실시간센서없음</span>
                 )}
               </h3>
-              {[...( stationsByRiver.get(river) ?? new Map<string, { A?: RiskScore; B?: RiskScore }>()).entries()].map(([stationId, both]) => {
-                const ref = both.A ?? both.B!
-                const colorA = RISK_COLORS[both.A?.risk_level ?? 'unknown']
-                const colorB = RISK_COLORS[both.B?.risk_level ?? 'unknown']
-                return (
-                  <button
-                    key={stationId}
-                    type="button"
-                    className="station-row station-row--dual"
-                    onClick={() => {
-                      flyTo({ lng: ref.lng, lat: ref.lat, zoom: 15.5 })
-                      selectStation({ stationId: ref.station_id, riverName: ref.river_name, lng: ref.lng, lat: ref.lat })
-                    }}
-                  >
-                    <span className="station-row__id">
-                      {stationId}
-                      {ref.sensor_missing && (
-                        <span className="badge-missing" title="자동측정망 미설치 (BOD 추정)">⚠️</span>
-                      )}
-                      {ref.anomaly_detected && (
-                        <span className="badge-anomaly" title="Isolation Forest 이상 탐지">🚨</span>
-                      )}
-                    </span>
-                    <span className="station-row__dual-scores">
-                      {both.A && (
-                        <span className="dual-badge dual-badge--a" style={{ background: colorA }}>
-                          A {Math.round(both.A.risk_score * 100)}%
+              {/* station-list__rows: 팀원 리스타일 CSS가 이 래퍼를 기준으로 잡힌다 */}
+              <div className="station-list__rows">
+                {[...(stationsByRiver.get(river) ?? new Map<string, { A?: RiskScore; B?: RiskScore }>()).entries()].map(
+                  ([stationId, both]) => {
+                    const ref = both.A ?? both.B!
+                    const colorA = RISK_COLORS[both.A?.risk_level ?? 'unknown']
+                    const colorB = RISK_COLORS[both.B?.risk_level ?? 'unknown']
+                    return (
+                      <button
+                        key={stationId}
+                        type="button"
+                        className="station-row station-row--dual"
+                        onClick={() => {
+                          flyTo({ lng: ref.lng, lat: ref.lat, zoom: 15.5 })
+                          selectStation({ stationId: ref.station_id, riverName: ref.river_name, lng: ref.lng, lat: ref.lat })
+                        }}
+                      >
+                        <span className="station-row__id">
+                          {stationId}
+                          {ref.sensor_missing && (
+                            <span className="badge-missing" title="자동측정망 미설치 (BOD 추정)">
+                              <AlertTriangle size={12} strokeWidth={2.25} />
+                            </span>
+                          )}
+                          {ref.anomaly_detected && (
+                            <span className="badge-anomaly" title="Isolation Forest 이상 탐지">
+                              <Siren size={12} strokeWidth={2.25} />
+                            </span>
+                          )}
                         </span>
-                      )}
-                      {both.B && (
-                        <span className="dual-badge dual-badge--b" style={{ borderColor: colorB, color: colorB }}>
-                          B {Math.round(both.B.risk_score * 100)}%
+                        <span className="station-row__dual-scores">
+                          {both.A && (
+                            <span className="dual-badge dual-badge--a" style={{ background: colorA }}>
+                              A {Math.round(both.A.risk_score * 100)}%
+                            </span>
+                          )}
+                          {both.B && (
+                            <span className="dual-badge dual-badge--b" style={{ borderColor: colorB, color: colorB }}>
+                              B {Math.round(both.B.risk_score * 100)}%
+                            </span>
+                          )}
                         </span>
-                      )}
-                    </span>
-                  </button>
-                )
-              })}
+                      </button>
+                    )
+                  },
+                )}
+              </div>
             </div>
           ))}
         </div>
