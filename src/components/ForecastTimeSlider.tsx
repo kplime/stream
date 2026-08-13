@@ -1,22 +1,9 @@
-import { useEffect } from 'react'
+import { Globe, RotateCcw } from 'lucide-react'
 import { useMapStore } from '../store/useMapStore'
 
 export function ForecastTimeSlider() {
   const forecastHour = useMapStore((s) => s.forecastHour)
   const setForecastHour = useMapStore((s) => s.setForecastHour)
-  const isForecastPlaying = useMapStore((s) => s.isForecastPlaying)
-  const toggleForecastPlaying = useMapStore((s) => s.toggleForecastPlaying)
-
-  // 48시간 타임라인 자동 재생 효과 (Play/Pause)
-  useEffect(() => {
-    if (!isForecastPlaying) return
-
-    const interval = setInterval(() => {
-      setForecastHour((useMapStore.getState().forecastHour + 1) % 49)
-    }, 700)
-
-    return () => clearInterval(interval)
-  }, [isForecastPlaying, setForecastHour])
 
   // 현재 시각 기준 상대 시간 계산
   const getForecastTimeText = (hours: number) => {
@@ -33,9 +20,11 @@ export function ForecastTimeSlider() {
     <div className="forecast-slider-card">
       <div className="forecast-header">
         <div className="forecast-title-group">
-          <span className="forecast-icon">🌐</span>
+          <span className="forecast-icon">
+            <Globe size={16} strokeWidth={2} />
+          </span>
           <div>
-            <h3 className="forecast-title">디지털 트윈 48시간 수질 예보</h3>
+            <h3 className="forecast-title">48시간 수질 예보</h3>
             <p className="forecast-subtitle">미래 시간대별 하천 위험도 시뮬레이션</p>
           </div>
         </div>
@@ -48,27 +37,16 @@ export function ForecastTimeSlider() {
             <button
               type="button"
               className="forecast-reset-btn"
-              onClick={() => {
-                setForecastHour(0)
-                if (isForecastPlaying) toggleForecastPlaying()
-              }}
+              onClick={() => setForecastHour(0)}
             >
-              🔄 현재로 리셋
+              <RotateCcw size={12} strokeWidth={2.5} />
+              현재로 리셋
             </button>
           )}
         </div>
       </div>
 
       <div className="forecast-controls">
-        <button
-          type="button"
-          className={`forecast-play-btn ${isForecastPlaying ? 'forecast-play-btn--active' : ''}`}
-          onClick={toggleForecastPlaying}
-          title={isForecastPlaying ? '시뮬레이션 일시정지' : '48시간 연속 시뮬레이션 재생'}
-        >
-          {isForecastPlaying ? '⏸️ 정지' : '▶️ 48시간 재생'}
-        </button>
-
         <div className="forecast-track-wrapper">
           <input
             type="range"

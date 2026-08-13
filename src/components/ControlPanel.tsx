@@ -1,9 +1,9 @@
 import { useMemo } from 'react'
+import { AlertTriangle, MapPin, Siren } from 'lucide-react'
 import { useRiskScores } from '../hooks/useRiskScores'
 import { useMapStore } from '../store/useMapStore'
 import { RIVER_NAMES, RISK_LEVEL_ORDER, TRACK_LABELS, type Track } from '../types/risk'
 import { RISK_COLORS } from '../lib/mapStyle'
-import { CandidatePledgeBanner } from './CandidatePledgeBanner'
 
 const TRACKS: Track[] = ['A', 'B']
 
@@ -18,7 +18,7 @@ export function ControlPanel() {
   const selectStation = useMapStore((s) => s.selectStation)
   const userLocation = useMapStore((s) => s.userLocation)
 
-  const { data: scores, usingMock } = useRiskScores()
+  const { data: scores } = useRiskScores()
 
   const handleLocateUser = () => {
     const loc = userLocation ?? { lng: 129.0835, lat: 35.2045, heading: 45 }
@@ -44,13 +44,9 @@ export function ControlPanel() {
           <h1>부산 도심하천 수질예보</h1>
           <p className="control-panel__subtitle-text">온천천 · 동천 · 괴정천 실시간 위험도 예측</p>
         </div>
-        <span className={`status-pill ${usingMock ? 'status-pill--mock' : 'status-pill--live'}`}>
-          {usingMock ? '데모 모드 (Mock)' : '실시간 연동'}
-        </span>
       </header>
 
       <div className="control-panel__banner-wrapper">
-        <CandidatePledgeBanner />
         <div className="control-panel__btn-row">
           <button
             type="button"
@@ -58,7 +54,8 @@ export function ControlPanel() {
             onClick={handleLocateUser}
             title="현재 내 실시간 GPS 위치로 확대 이동"
           >
-            📍 내 위치로 확대 이동
+            <MapPin size={14} strokeWidth={2.25} />
+            내 위치로 확대 이동
           </button>
         </div>
       </div>
@@ -107,28 +104,38 @@ export function ControlPanel() {
           {RIVER_NAMES.filter((r) => visibleRivers.has(r)).map((river) => (
             <div key={river} className="station-list__group">
               <h3>{river}</h3>
-              {stationsByRiver.get(river)?.map((s) => (
-                <button
-                  key={s.station_id}
-                  type="button"
-                  className="station-row"
-                  onClick={() => {
-                    flyTo({ lng: s.lng, lat: s.lat, zoom: 15.5 })
-                    selectStation({ stationId: s.station_id, riverName: s.river_name, lng: s.lng, lat: s.lat })
-                  }}
-                >
-                  <span
-                    className="station-row__dot"
-                    style={{ background: RISK_COLORS[s.risk_level] }}
-                  />
-                  <span className="station-row__id">
-                    {s.station_id}
-                    {s.sensor_missing && <span className="badge-missing" title="자동측정망 미설치 (BOD 추정)">⚠️</span>}
-                    {s.anomaly_detected && <span className="badge-anomaly" title="Isolation Forest 이상 탐지">🚨</span>}
-                  </span>
-                  <span className="station-row__score">{Math.round(s.risk_score * 100)}%</span>
-                </button>
-              ))}
+              <div className="station-list__rows">
+                {stationsByRiver.get(river)?.map((s) => (
+                  <button
+                    key={s.station_id}
+                    type="button"
+                    className="station-row"
+                    onClick={() => {
+                      flyTo({ lng: s.lng, lat: s.lat, zoom: 15.5 })
+                      selectStation({ stationId: s.station_id, riverName: s.river_name, lng: s.lng, lat: s.lat })
+                    }}
+                  >
+                    <span
+                      className="station-row__dot"
+                      style={{ background: RISK_COLORS[s.risk_level] }}
+                    />
+                    <span className="station-row__id">
+                      {s.station_id}
+                      {s.sensor_missing && (
+                        <span className="badge-missing" title="자동측정망 미설치 (BOD 추정)">
+                          <AlertTriangle size={12} strokeWidth={2.25} />
+                        </span>
+                      )}
+                      {s.anomaly_detected && (
+                        <span className="badge-anomaly" title="Isolation Forest 이상 탐지">
+                          <Siren size={12} strokeWidth={2.25} />
+                        </span>
+                      )}
+                    </span>
+                    <span className="station-row__score">{Math.round(s.risk_score * 100)}%</span>
+                  </button>
+                ))}
+              </div>
             </div>
           ))}
         </div>

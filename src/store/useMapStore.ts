@@ -41,8 +41,6 @@ interface MapState {
 
   forecastHour: number
   setForecastHour: (hour: number) => void
-  isForecastPlaying: boolean
-  toggleForecastPlaying: () => void
 }
 
 export const useMapStore = create<MapState>((set) => ({
@@ -84,7 +82,5 @@ export const useMapStore = create<MapState>((set) => ({
 
   forecastHour: 0,
   setForecastHour: (forecastHour) => set({ forecastHour }),
-  isForecastPlaying: false,
-  toggleForecastPlaying: () => set((state) => ({ isForecastPlaying: !state.isForecastPlaying })),
 }))
 
