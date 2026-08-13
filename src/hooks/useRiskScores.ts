@@ -45,8 +45,13 @@ export function useRiskScores() {
     if (!isSupabaseConfigured || !supabase) return
     const client = supabase
 
+    // Unique topic name per mount: StrictMode double-invokes this effect in
+    // dev (mount -> cleanup -> mount), and supabase-js's `.channel(name)`
+    // returns the *same* channel object for a repeated name — the second
+    // mount would call `.on()` on a channel that's already `.subscribe()`d
+    // and throw. A fresh name per mount sidesteps the reuse entirely.
     const channel = client
-      .channel('risk_scores-changes')
+      .channel(`risk_scores-changes-${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'risk_scores' },
@@ -91,5 +96,11 @@ export function useRiskScores() {
     }
   }, [usingMock, queryClient])
 
+  // 이 훅은 항상 "현재 실측" 위험도만 돌려준다.
+  // 예보 시점 전환은 useDisplayScores가 risk_forecast 실데이터로 처리하므로,
+  // 여기서 forecastHour에 따라 값을 변형하면 예보의 기준선이 되는 실측값까지
+  // 함께 왜곡된다. (이전에 sin 곡선으로 합성 예보를 만들던 코드가 있었으나,
+  //  forecastHour가 null=실시간 표현으로 바뀌면서 실시간에도 항상 적용돼
+  //  버리는 문제까지 있어 제거했다.)
   return { ...query, usingMock }
 }

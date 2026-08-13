@@ -1,0 +1,15 @@
+feature,mean_shap
+SS,0.7031003
+TP,0.6017113
+DO,0.47435293
+수온,0.3425656
+EC,0.3252237
+tide_range_cm,0.21499293
+pH,0.20487909
+tide_spring_proxy,0.19948389
+rain_lag1_mm,0.1721013
+rain_total_mm,0.15225308
+temp_avg_c,0.14399596
+rain_lag1_max,0.12958907
+month,0.045948
+tide_high_count,0.031760678

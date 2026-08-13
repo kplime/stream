@@ -1,14 +1,41 @@
+:root {
+  /* Apple 시스템 다크모드에서 따온 토큰. 페이지 배경(surface-1)보다 한 단계
+     밝은 "그룹 카드"(surface-2)를 얹는 2단 구조 + 얇은 헤어라인 구분선 +
+     절제된 단색 accent(파랑은 스위치/버튼에만) — iOS 설정 앱의 grouped list
+     패턴을 그대로 따른다. */
+  --surface-1: #1c1c1e;
+  --surface-2: #2c2c2e;
+  --surface-3: #3a3a3c;
+  --hairline: rgba(255, 255, 255, 0.09);
+  --text-primary: rgba(255, 255, 255, 0.94);
+  --text-secondary: rgba(235, 235, 245, 0.6);
+  --text-tertiary: rgba(235, 235, 245, 0.35);
+  --accent: #0a84ff;
+  --accent-soft: rgba(10, 132, 255, 0.18);
+  --accent-border: rgba(10, 132, 255, 0.5);
+  --radius-control: 10px;
+  --radius-card: 14px;
+  --radius-widget: 20px;
+  --shadow-card: 0 16px 40px rgba(0, 0, 0, 0.45);
+  /* legacy aliases (다른 컴포넌트 CSS와의 하위 호환) */
+  --border: var(--hairline);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --accent-strong: var(--accent);
+  --radius-sm: var(--radius-control);
+  --radius-md: var(--radius-card);
+  --radius-lg: var(--radius-widget);
+}
+
 .app {
-  display: flex;
+  position: relative;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
 }
 
 .app__map {
-  position: relative;
-  flex: 1;
-  min-width: 0;
+  position: absolute;
+  inset: 0;
 }
 
 .map-view {
@@ -23,53 +50,146 @@
 /* ---------- control panel ---------- */
 
 .control-panel {
-  width: 320px;
-  flex: none;
+  /* 사이드바만 라이트/반투명 유리 톤으로 오버라이드 — 이 아래 자식 규칙들은
+     전부 var(--surface-*), var(--text-*) 토큰을 쓰고 있어서 여기서 값만
+     다시 정의하면 캐스케이드로 전부 같이 밝아진다. */
+  --surface-1: rgba(246, 246, 248, 0.16);
+  --surface-2: rgba(255, 255, 255, 0.72);
+  --surface-3: rgba(0, 0, 0, 0.05);
+  --hairline: rgba(0, 0, 0, 0.08);
+  --text-primary: rgba(0, 0, 0, 0.88);
+  --text-secondary: rgba(60, 60, 67, 0.6);
+  --text-tertiary: rgba(60, 60, 67, 0.32);
+  --accent: #007aff;
+  --accent-soft: rgba(0, 122, 255, 0.14);
+  --accent-border: rgba(0, 122, 255, 0.4);
+
+  /* 지도 옆에 나란히 배치되는 flex 패널이 아니라, 지도 위에 뜨는 카드로 —
+     그래야 backdrop-filter가 실제로 지도를 블러링해서 비춘다 (레이아웃상
+     뒤에 아무것도 없으면 반투명은 그냥 밋밋한 단색으로 보인다). position:
+     absolute라 .app__map(flex:1)이 남은 flex item 없이 폭 전체를 차지하게
+     되므로 지도 자체도 자동으로 풀블리드가 된다. */
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  bottom: 16px;
+  width: 300px;
+  z-index: 1000;
   display: flex;
   flex-direction: column;
-  background: #1a1a19;
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--surface-1);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  border: 0.5px solid var(--hairline);
+  border-radius: var(--radius-widget);
+  box-shadow: var(--shadow-card);
   overflow-y: auto;
-  padding: 20px 18px;
-  gap: 20px;
+  padding: 24px 18px;
+  gap: 28px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-3) transparent;
+  font-feature-settings: 'ss01' 1;
+}
+
+.control-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.control-panel::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 8px;
 }
 
 .control-panel__header {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 2px;
+}
+
+/* 왼쪽 패널 여닫이 손잡이 — 화면 폭과 무관하게 항상 쓸 수 있다.
+   패널 오른쪽 모서리에 붙어 패널과 함께 움직인다.
+   aside의 형제로 렌더된다 (aside가 overflow-y:auto라 자식으로 두면 잘림). */
+.control-panel-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 26px;
+  height: 60px;
+  padding: 0;
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  border-left: none;
+  border-radius: 0 10px 10px 0;
+  background: rgba(246, 246, 248, 0.72);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  color: rgba(0, 0, 0, 0.7);
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  z-index: 1001;
+  /* 열림(기본): 패널 오른쪽 모서리 = 16px 여백 + 300px 폭.
+     닫힘은 .app--panel-closed 에서 화면 왼쪽 끝으로 되돌린다. */
+  transform: translate(316px, -50%);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.app--panel-closed .control-panel-handle {
+  transform: translate(0, -50%);
+}
+
+.control-panel-handle:hover {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.control-panel-handle:active {
+  background: rgba(236, 236, 240, 0.9);
+}
+
+/* 패널 여닫이 — 넓은 화면에서도 접을 수 있다.
+   left:16px 여백이 있어 -100%만으로는 그 16px이 남으므로 함께 빼준다. */
+.control-panel {
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.app--panel-closed .control-panel {
+  transform: translateX(calc(-100% - 24px));
+}
+
+/* 패널이 접히면 패널 폭만큼 밀려 있던 요소들이 자리를 회수한다.
+   min-width로 한정하는 이유: 이 선택자는 클래스 2개(0,2,0)라 모바일 블록의
+   `.legend`/`.time-slider-wrap`(0,1,0)보다 특이도가 높다. 한정하지 않으면
+   순서와 무관하게 모바일 배치를 덮어써서, 좁은 화면에서 패널을 닫는 순간
+   슬라이더가 화면 밖으로 밀려난다. */
+@media (min-width: 769px) {
+  .app--panel-closed .legend {
+    left: 44px;
+  }
+
+  .app--panel-closed .time-slider-wrap {
+    left: 50%;
+    width: calc(100% - 96px);
+  }
 }
 
 .control-panel__header h1 {
-  font-size: 17px;
+  font-size: 21px;
   font-weight: 700;
   margin: 0;
-  line-height: 1.35;
-}
-
-.status-pill {
-  align-self: flex-start;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 9px;
-  border-radius: 999px;
-  letter-spacing: 0.01em;
-}
-
-.status-pill--live {
-  background: rgba(12, 163, 12, 0.18);
-  color: #3ddc3d;
-}
-
-.status-pill--mock {
-  background: rgba(250, 178, 25, 0.18);
-  color: #fab219;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
 }
 
 .control-section {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .control-section--grow {
@@ -77,102 +197,209 @@
   min-height: 0;
 }
 
+.chip-track-badge {
+  font-size: 9px;
+  color: #5a5955;
+  margin-left: 2px;
+}
+
+.group-track-label {
+  font-size: 10px;
+  font-weight: 400;
+  color: #5a5955;
+  margin-left: 6px;
+}
+
 .control-section h2 {
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #898781;
+  color: var(--text-tertiary);
   margin: 0;
+  padding: 0 4px;
 }
 
+/* iOS 스타일 세그먼트 컨트롤: accent는 스위치/버튼에만 쓰고, 여기는 중립 톤의
+   "떠 있는 알약" 형태로 절제한다. */
 .segmented {
   display: flex;
-  background: #0d0d0d;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 3px;
-  gap: 3px;
+  background: rgba(120, 120, 128, 0.24);
+  border-radius: var(--radius-control);
+  padding: 2px;
+  gap: 2px;
 }
 
 .segmented__item {
   flex: 1;
   border: none;
   background: transparent;
-  color: #c3c2b7;
-  font-size: 12px;
+  color: var(--text-secondary);
+  font-size: 12.5px;
   font-weight: 600;
   padding: 8px 6px;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.segmented__item:hover {
+  color: var(--text-primary);
 }
 
 .segmented__item--active {
-  background: #2a78d6;
-  color: #ffffff;
+  background: #ffffff;
+  color: #000000;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.16);
 }
 
+/* 그룹 리스트 카드: 행마다 개별 배경/보더를 주는 대신, 컨테이너 하나가
+   카드가 되고 행 사이는 얇은 헤어라인으로만 구분한다 (iOS 설정 앱 패턴). */
 .chip-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-direction: column;
+  background: var(--surface-2);
+  border-radius: var(--radius-card);
+  overflow: hidden;
 }
 
 .chip {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #c3c2b7;
-  background: #0d0d0d;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 7px;
-  padding: 6px 10px;
+  justify-content: space-between;
+  width: 100%;
+  gap: 10px;
+  font-size: 13.5px;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  border-bottom: 0.5px solid var(--hairline);
+  padding: 11px 14px;
   cursor: pointer;
+  transition: background 0.15s ease;
 }
 
-.chip input {
-  accent-color: #2a78d6;
+.chip:last-child {
+  border-bottom: none;
+}
+
+.chip:hover {
+  background: var(--surface-3);
+}
+
+/* "하천 표시" 섹션의 chip-row 바로 아래, 독립된 단일 행(3D 건물)은
+   그 자체로 카드가 된다 — 그룹을 나눠서 관련 없는 토글을 시각적으로 분리. */
+.control-section > .chip {
+  border-radius: var(--radius-card);
+  background: var(--surface-2);
+  border-bottom: none;
+}
+
+/* 체크박스를 iOS 스위치처럼 그린다. 라벨 텍스트(익명 flex item, order 0)
+   뒤로 보내기 위해 order:1만 주면 DOM/마크업은 그대로 두고 시각 순서만
+   "라벨 — 스위치"로 뒤집을 수 있다. */
+.chip input[type='checkbox'] {
+  order: 1;
+  flex: none;
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  width: 42px;
+  height: 25px;
+  border-radius: 999px;
+  background: rgba(120, 120, 128, 0.32);
+  border: none;
+  margin: 0;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.chip input[type='checkbox']::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 21px;
+  height: 21px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+  transition: transform 0.2s ease;
+}
+
+.chip input[type='checkbox']:checked {
+  background: #30d158;
+}
+
+.chip input[type='checkbox']:checked::before {
+  transform: translateX(17px);
 }
 
 .station-list {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 20px;
   padding-right: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-3) transparent;
+}
+
+.station-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.station-list::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 6px;
 }
 
 .station-list__group h3 {
   font-size: 12px;
   font-weight: 600;
-  color: #ffffff;
-  margin: 0 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  margin: 0 0 8px;
+  padding: 0 4px;
+}
+
+.station-list__rows {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-2);
+  border-radius: var(--radius-card);
+  overflow: hidden;
 }
 
 .station-row {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   background: transparent;
   border: none;
-  border-radius: 6px;
-  padding: 6px 6px;
-  color: #c3c2b7;
-  font-size: 12.5px;
+  border-bottom: 0.5px solid var(--hairline);
+  border-radius: 0;
+  padding: 10px 14px;
+  color: var(--text-primary);
+  font-size: 13px;
   cursor: pointer;
   text-align: left;
+  transition: background 0.15s ease;
+}
+
+.station-row:last-child {
+  border-bottom: none;
 }
 
 .station-row:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #ffffff;
+  background: var(--surface-3);
 }
 
 .station-row__dot {
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   flex: none;
 }
@@ -182,60 +409,2058 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 450;
 }
 
 .station-row__score {
   font-variant-numeric: tabular-nums;
-  color: #898781;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
 }
 
 /* ---------- legend ---------- */
 
 .legend {
+  /* 사이드바가 이제 지도 위에 뜨는 카드(왼쪽 16px + 300px 폭)라, 그 아래
+     겹치지 않도록 오른쪽으로 밀어낸다. */
+  --surface-1: rgba(246, 246, 248, 0.16);
+  --text-primary: rgba(0, 0, 0, 0.88);
+  --text-secondary: rgba(60, 60, 67, 0.6);
+  --text-tertiary: rgba(60, 60, 67, 0.32);
+  --hairline: rgba(0, 0, 0, 0.08);
+
   position: absolute;
-  left: 16px;
+  left: 332px;
   bottom: 24px;
-  background: rgba(26, 26, 25, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  padding: 12px 14px;
-  backdrop-filter: blur(6px);
-  color: #ffffff;
+  background: var(--surface-1);
+  border: 0.5px solid var(--hairline);
+  border-radius: var(--radius-widget);
+  padding: 12px 18px;
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-card);
 }
 
 .legend__title {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  color: #c3c2b7;
-  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  margin-bottom: 9px;
 }
 
 .legend__items {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  gap: 16px;
 }
 
 .legend__item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 .legend__item--muted {
-  color: #898781;
+  color: var(--text-tertiary);
 }
 
 .legend__swatch {
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
   flex: none;
 }
 
-/* ---------- maplibre overrides ---------- */
+/* ---------- track description ---------- */
 
-.maplibregl-popup-content {
+.track-desc {
+  font-size: 11px;
+  color: #898781;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ---------- chip badges ---------- */
+
+.chip-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+  margin-left: 2px;
+}
+
+.chip-badge--warn {
+  background: rgba(250, 178, 25, 0.2);
+  color: #fab219;
+}
+
+/* ---------- station group badge ---------- */
+
+.group-badge {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.group-badge--warn {
+  background: rgba(250, 178, 25, 0.15);
+  color: #fab219;
+}
+
+/* ---------- station row time ---------- */
+
+.station-row__time {
+  font-size: 10.5px;
+  color: #5a5955;
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+}
+
+/* ---------- weather widget ---------- */
+
+.weather-row {
+  display: flex;
+  gap: 6px;
+}
+
+.weather-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: #0d0d0d;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px 4px;
+}
+
+.weather-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.weather-value {
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #e8e8e4;
+}
+
+.weather-value--warn {
+  color: #d03b3b;
+}
+
+.weather-label {
+  font-size: 10px;
+  color: #5a5955;
+}
+
+.weather-forecast {
+  font-size: 11px;
+  color: #fab219;
+  margin: 4px 0 0;
+}
+
+/* ---------- dual-track station row ---------- */
+
+.station-row--dual {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 7px 6px;
+}
+
+.station-row__dual-scores {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.dual-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dual-badge--a {
+  color: #fff;
+}
+
+.dual-badge--b {
+  background: transparent;
+  border: 1.5px solid;
+}
+
+/* ---------- forecast panel ---------- */
+
+.forecast-table {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.forecast-header,
+.forecast-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.forecast-river-col {
+  width: 52px;
+  flex: none;
+  font-size: 11px;
+  color: #898781;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.forecast-hour-col {
+  flex: 1;
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+  color: #898781;
+}
+
+.forecast-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 4px 2px;
+  border-radius: 5px;
+  border: 1px solid;
+  color: #e8e8e4;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  cursor: default;
+}
+
+.forecast-cell--empty {
+  color: #3a3a38;
+}
+
+.forecast-hour-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #898781;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 2px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.forecast-hour-btn:hover {
+  background: rgba(255,255,255,0.08);
+  color: #e8e8e4;
+}
+
+.forecast-hour-btn--active {
+  background: rgba(42, 120, 214, 0.25);
+  color: #6aacff;
+}
+
+.forecast-cell--selected {
+  background: rgba(42, 120, 214, 0.12);
+}
+
+/* 상세 패널 */
+.forecast-detail {
+  margin-top: 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.forecast-detail__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.forecast-detail__title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #c3c2b7;
+}
+
+.forecast-detail__close {
+  background: none;
+  border: none;
+  color: #898781;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.forecast-conditions {
+  display: flex;
+  gap: 6px;
+}
+
+.forecast-cond-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 6px;
+  padding: 5px 3px;
+}
+
+.forecast-cond-icon { font-size: 14px; }
+
+.forecast-cond-val {
+  font-size: 11px;
+  font-weight: 700;
+  color: #e8e8e4;
+  font-variant-numeric: tabular-nums;
+}
+
+.forecast-cond-label {
+  font-size: 9px;
+  color: #5a5955;
+}
+
+.forecast-detail__rivers {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.forecast-detail__river-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.forecast-detail__river-name {
+  font-size: 11px;
+  color: #898781;
+  width: 42px;
+  flex: none;
+}
+
+.forecast-detail__badges {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.forecast-detail__badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 5px;
+}
+
+.forecast-detail__badge--a {
+  color: #fff;
+}
+
+.forecast-detail__badge--b {
+  background: transparent;
+  border: 1.5px solid;
+}
+
+.forecast-ok {
+  font-size: 11px;
+  color: #0ca30c;
+  margin: 0;
+}
+
+.forecast-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.forecast-warnings {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.forecast-warning-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #fab219;
+  background: rgba(250, 178, 25, 0.08);
+  border-radius: 6px;
+  padding: 5px 8px;
+}
+
+.forecast-warning-icon {
+  font-size: 13px;
+}
+
+/* ---------- time slider ---------- */
+
+.time-slider-wrap {
+  /* 사이드바 카드·범례와 같은 라이트 유리 톤. 자식 규칙들이 아래에서
+     var(--surface-*)/var(--text-*)를 쓰므로 여기서 재정의하면 캐스케이드로
+     함께 밝아진다. */
+  --surface-1: rgba(246, 246, 248, 0.16);
+  --surface-2: rgba(0, 0, 0, 0.05);
+  --surface-3: rgba(0, 0, 0, 0.09);
+  --text-primary: rgba(0, 0, 0, 0.88);
+  --text-secondary: rgba(60, 60, 67, 0.6);
+  --text-tertiary: rgba(60, 60, 67, 0.32);
+  --hairline: rgba(0, 0, 0, 0.08);
+  --accent: #007aff;
+  --accent-soft: rgba(0, 122, 255, 0.14);
+  --accent-border: rgba(0, 122, 255, 0.4);
+
+  /* 사이드바가 지도 위에 뜨는 300px 카드(좌 16px)가 되었으므로, 화면 전체
+     기준으로 가운데 두면 사이드바와 겹친다. 사이드바를 뺀 나머지 폭의
+     가운데로 밀어낸다 (166px = (300 + 16*2) / 2). */
+  position: absolute;
+  bottom: 24px;
+  left: calc(50% + 166px);
+  transform: translateX(-50%);
+  width: calc(100% - 452px);
+  max-width: 640px;
+  min-width: 320px;
+  background: var(--surface-1);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 0.5px solid var(--hairline);
+  border-radius: var(--radius-widget);
+  box-shadow: var(--shadow-card);
+  color: var(--text-primary);
+  padding: 16px 20px;
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.time-slider-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.time-slider-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+}
+
+.time-slider-badge--live {
+  background: rgba(52, 199, 89, 0.16);
+  color: #1a7f37;
+}
+
+.time-slider-badge--forecast {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.time-slider-conditions {
+  display: flex;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.time-slider-reset {
+  margin-left: auto;
+  background: var(--surface-2);
+  border: 0.5px solid var(--hairline);
+  color: var(--text-secondary);
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.time-slider-reset:hover { background: var(--surface-3); }
+
+.time-slider-track-wrap {
+  position: relative;
+  padding-bottom: 22px;
+}
+
+.time-slider-input {
+  width: 100%;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  background: linear-gradient(
+    to right,
+    var(--slider-color, #5b5a55) 0%,
+    var(--slider-color, #5b5a55) calc(var(--pct, 0%) ),
+    var(--surface-3) calc(var(--pct, 0%)),
+    var(--surface-3) 100%
+  );
+}
+
+.time-slider-input::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--slider-color, #ffffff);
+  border: 2px solid rgba(255,255,255,0.95);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.28);
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+.time-slider-input::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+.time-slider-ticks {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 20px;
+}
+
+.time-slider-tick {
+  position: absolute;
+  transform: translateX(-50%);
+  background: none;
+  border: none;
+  font-size: 10px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 2px 0;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+
+.time-slider-tick:hover { color: var(--text-secondary); }
+
+.time-slider-tick--active {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* ---------- maplibre 팝업 — 사이드바·범례와 같은 라이트 유리 톤 ---------- */
+
+.wq-map-popup .maplibregl-popup-content {
+  /* 사이드바(0.16)보다 불투명하게 잡는다. 팝업은 지도 위 복잡한 지형·라벨
+     바로 위에 뜨고 작은 숫자와 SHAP 막대가 촘촘히 들어가서, 같은 투명도로는
+     배경 지도가 비쳐 글자가 읽히지 않는다. */
+  --surface-1: rgba(250, 250, 252, 0.72);
+  --surface-2: rgba(0, 0, 0, 0.05);
+  --surface-3: rgba(0, 0, 0, 0.09);
+  --text-primary: rgba(0, 0, 0, 0.88);
+  --text-secondary: rgba(60, 60, 67, 0.62);
+  --text-tertiary: rgba(60, 60, 67, 0.34);
+  --hairline: rgba(0, 0, 0, 0.08);
+  --accent: #007aff;
+
+  background: var(--surface-1);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  border: 0.5px solid var(--hairline);
+  border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  padding: 14px 16px;
+  color: var(--text-primary);
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
+    'Segoe UI', 'Malgun Gothic', system-ui, sans-serif;
+}
+
+/* 꼬리는 CSS 삼각형이라 blur가 걸리지 않는다. 본문과 같은 반투명 흰색으로
+   칠해 이질감만 줄인다. maplibre도 앵커별로 같은 자리를 칠하므로(0,2,0)
+   전용 클래스를 함께 붙여 0,3,0으로 올린다. */
+.wq-map-popup.maplibregl-popup-anchor-bottom .maplibregl-popup-tip { border-top-color: rgba(250, 250, 252, 0.72); }
+.wq-map-popup.maplibregl-popup-anchor-top .maplibregl-popup-tip { border-bottom-color: rgba(250, 250, 252, 0.72); }
+.wq-map-popup.maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: rgba(250, 250, 252, 0.72); }
+.wq-map-popup.maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: rgba(250, 250, 252, 0.72); }
+
+/* 셀렉터를 한 단계 더 붙여 특이도를 올린다.
+   maplibre-gl.css가 번들에서 App.css보다 뒤에 실려서, 같은 특이도로 쓰면
+   border-radius/top/right 가 maplibre 기본값(0 3px 0 0 / 0 / 0)으로 덮인다. */
+.wq-map-popup .maplibregl-popup-close-button {
+  width: 26px;
+  height: 26px;
+  right: 4px;
+  top: 4px;
+  border-radius: 50%;
+  color: var(--text-tertiary);
+  font-size: 17px;
+  line-height: 1;
+  background: transparent;
+  transition: background 0.15s, color 0.15s;
+}
+
+.wq-map-popup .maplibregl-popup-close-button:hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+/* ── 팝업 본문 ────────────────────────────── */
+.wq-popup {
+  min-width: 228px;
+  max-width: 288px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.wq-popup__station {
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  padding-right: 22px;   /* 닫기 버튼 자리 */
+}
+
+.wq-popup__meta {
+  color: var(--text-secondary);
+  font-size: 11px;
+  margin-top: 2px;
+  margin-bottom: 10px;
+}
+
+.wq-popup__risks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wq-popup__risk-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wq-popup__risk-label {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+/* 상태 배지는 유리 위에서도 한눈에 읽혀야 해서 채도를 유지한다 */
+.wq-badge {
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+.wq-badge--low    { background: #0ca30c; }
+.wq-badge--medium { background: #d98806; }
+.wq-badge--high   { background: #d03b3b; }
+
+/* ── SHAP 기여도 ────────────────────────────── */
+.wq-shap {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 0.5px solid var(--hairline);
+}
+
+.wq-shap__title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+}
+
+.wq-shap__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 3px 0;
+}
+
+.wq-shap__sign { font-size: 9px; width: 10px; flex: none; }
+.wq-shap__sign--up   { color: #d03b3b; }
+.wq-shap__sign--down { color: #0ca30c; }
+
+.wq-shap__name {
+  font-size: 11px;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-primary);
+}
+
+/* 막대는 고정 폭 레일 안에서 비율로 차오르게 한다 —
+   이전에는 px 폭을 인라인으로 줘서 긴 항목명과 자리를 다퉜다. */
+.wq-shap__track {
+  width: 64px;
+  height: 5px;
+  flex: none;
+  border-radius: 3px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+.wq-shap__bar {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+}
+.wq-shap__bar--up   { background: #d03b3b; }
+.wq-shap__bar--down { background: #0ca30c; }
+
+.wq-shap__val {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  width: 38px;
+  flex: none;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.wq-popup__note {
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--text-tertiary);
+  line-height: 1.4;
+}
+
+/* ── 역추적 버튼 ────────────────────────────── */
+.wq-trace-btn {
+  margin-top: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.wq-trace-btn:hover { filter: brightness(1.08); }
+.wq-trace-btn:active { filter: brightness(0.95); }
+
+/* ---------- Subtitle & Status Badges ---------- */
+
+.control-panel__subtitle-text {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.badge-missing,
+.badge-anomaly {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  vertical-align: -2px;
+}
+
+.badge-missing {
+  color: #f59e0b;
+}
+
+.badge-anomaly {
+  color: #ef4444;
+  animation: pulse-alert 1.5s infinite;
+}
+
+@keyframes pulse-alert {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+/* ---------- Candidate Pledge Banner ---------- */
+
+.control-panel__banner-wrapper {
+  margin-bottom: 4px;
+}
+
+.pledge-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  padding: 11px 12px;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  transition: filter 0.15s ease;
+  text-align: center;
+}
+
+.pledge-trigger-btn:hover {
+  filter: brightness(1.12);
+}
+
+.pledge-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.pledge-modal {
+  width: 100%;
+  max-width: 680px;
+  background: #18181b;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  padding: 24px;
+  color: #f4f4f5;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.pledge-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.pledge-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.12);
+  padding: 4px 10px;
+  border-radius: 999px;
+  margin-bottom: 6px;
+}
+
+.pledge-modal__header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.pledge-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: #a1a1aa;
+  cursor: pointer;
+}
+
+.pledge-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pledge-card {
+  background: #27272a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 16px;
+  position: relative;
+}
+
+.pledge-card--highlight {
+  border-color: #3b82f6;
+  background: linear-gradient(180deg, #1e293b 0%, #18181b 100%);
+}
+
+.pledge-card__num {
+  font-size: 11px;
+  font-weight: 800;
+  color: #9ca3af;
+  text-transform: uppercase;
+}
+
+.pledge-card h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 4px 0 12px;
+  color: #ffffff;
+}
+
+.pledge-card__versus {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.versus-box {
+  background: #18181b;
+  border-left: 3px solid #ef4444;
+  padding: 10px 12px;
+  border-radius: 4px 8px 8px 4px;
+}
+
+.versus-box--data {
+  border-left-color: #f59e0b;
+}
+
+.versus-box--impact {
+  border-left-color: #10b981;
+}
+
+.versus-box strong {
+  display: block;
+  font-size: 12px;
+  color: #d4d4d8;
+  margin-bottom: 4px;
+}
+
+.versus-box p {
+  margin: 0;
+  color: #a1a1aa;
+}
+
+.pledge-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 12px;
+  width: 100%;
+  padding: 8px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pledge-modal__footer {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 16px;
+  font-size: 12px;
+  color: #71717a;
+}
+
+.pledge-close-main-btn {
+  padding: 8px 16px;
+  background: #3f3f46;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* ---------- AI SHAP Diagnosis Modal ---------- */
+
+.shap-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.shap-modal {
+  /* 나머지 위젯(사이드바/범례/예보 바)과 같은 라이트 유리 톤. */
+  --text-primary: rgba(0, 0, 0, 0.88);
+  --text-secondary: rgba(60, 60, 67, 0.6);
+  --text-tertiary: rgba(60, 60, 67, 0.32);
+  --hairline: rgba(0, 0, 0, 0.08);
+
+  width: 100%;
+  max-width: 540px;
+  background: rgba(246, 246, 248, 0.78);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  border: 0.5px solid var(--hairline);
+  border-radius: var(--radius-widget);
+  padding: 24px;
+  color: var(--text-primary);
+  box-shadow: var(--shadow-card);
+  animation: modal-pop 0.25s ease-out;
+}
+
+@keyframes modal-pop {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.shap-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.shap-modal__title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.shap-modal__risk-badge {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.shap-modal__title {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.shap-modal__subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 2px 0 0;
+}
+
+.shap-modal__close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+.shap-alert {
+  padding: 12px 14px;
+  border-radius: var(--radius-control);
+  margin-bottom: 16px;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.shap-alert strong {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.shap-alert--warning {
+  background: rgba(255, 149, 0, 0.12);
+  border: 1px solid rgba(255, 149, 0, 0.3);
+  color: #a15c00;
+}
+
+.shap-alert--danger {
+  background: rgba(255, 59, 48, 0.12);
+  border: 1px solid rgba(255, 59, 48, 0.3);
+  color: #c0261c;
+}
+
+.shap-modal__section {
+  margin-bottom: 20px;
+}
+
+.shap-modal__section h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 4px;
+  color: var(--text-primary);
+}
+
+.shap-modal__desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0 0 14px;
+}
+
+.shap-factors-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.04);
+  padding: 14px;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--hairline);
+}
+
+.shap-factor-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.shap-factor-info {
+  width: 170px;
+  display: flex;
+  flex-direction: column;
+}
+
+.shap-factor-label {
+  font-size: 12px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.shap-factor-val {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.shap-factor-bar-bg {
+  flex: 1;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.shap-factor-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.shap-factor-bar--pos {
+  background: linear-gradient(90deg, #ff9500 0%, #ff3b30 100%);
+}
+
+.shap-factor-bar--neg {
+  background: linear-gradient(90deg, #007aff 0%, #30d158 100%);
+}
+
+.shap-factor-impact {
+  width: 45px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.shap-modal__section--highlight {
+  background: rgba(88, 86, 214, 0.08);
+  border: 1px solid rgba(88, 86, 214, 0.3);
+  padding: 14px;
+  border-radius: var(--radius-card);
+}
+
+.shap-lag-card {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.shap-lag-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.04);
+  padding: 10px 14px;
+  border-radius: var(--radius-control);
+  min-width: 100px;
+}
+
+.shap-lag-number {
+  font-size: 20px;
+  font-weight: 800;
+  color: #5856d6;
+}
+
+.shap-lag-label {
+  font-size: 10px;
+  color: #5856d6;
+  text-align: center;
+}
+
+.shap-lag-text {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.shap-modal__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--hairline);
+  padding-top: 14px;
+}
+
+.shap-modal__time {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.shap-modal__btn-primary {
+  padding: 8px 20px;
+  background: #007aff;
+  color: #ffffff;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+
+/* ---------- 2D GPS Location Marker (Apple/Mapbox Minimalist Style) ---------- */
+
+.user-location-pulse-marker {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 999 !important;
+}
+
+.user-location-pulse-ring {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(96, 165, 250, 0.45);
+  animation: location-pulse-anim 2.5s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+@keyframes location-pulse-anim {
+  0% { transform: scale(0.4); opacity: 0.9; }
+  70% { opacity: 0.3; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.user-location-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #2563eb;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35), 0 0 6px rgba(37, 99, 235, 0.4);
+  z-index: 2;
+}
+
+/* ---------- 3D Pokemon GO Avatar Marker ---------- */
+
+.avatar-3d-canvas-container {
+  z-index: 999 !important;
+  pointer-events: none;
+}
+
+/* 캐릭터 발밑 그림자 타원. scaleWrapper의 자식이라 줌 배율(scale())을 캐릭터와
+   똑같이 그대로 물려받아 같이 커지고 작아진다 — 별도 줌 리스너 불필요. */
+.avatar-ground-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: 3px;
+  z-index: 0;
+  width: 40px;
+  height: 13px;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.15) 55%, rgba(0, 0, 0, 0) 78%);
+  border-radius: 50%;
+  filter: blur(1px);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.avatar-character-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.3s ease;
+}
+
+.avatar-character {
+  font-size: 32px;
+  filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.5));
+  animation: avatar-bounce 1s infinite alternate ease-in-out;
+}
+
+@keyframes avatar-bounce {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-6px); }
+}
+
+.avatar-shadow {
+  width: 20px;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 50%;
+  margin-top: -4px;
+}
+
+/* ---------- Pokemon GO Mode Button ---------- */
+
+.pokemongo-mode-btn {
+  margin-top: 8px;
+  width: 100%;
+  padding: 10px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  transition: all 0.2s ease;
+}
+
+.pokemongo-mode-btn:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+
+.pokemongo-mode-btn--active {
+  background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+  box-shadow: 0 4px 14px rgba(236, 72, 153, 0.4);
+}
+
+/* ---------- Exploration HUD ---------- */
+
+.exploration-hud {
+  position: absolute;
+  top: 16px;
+  left: 340px;
+  right: 16px;
+  max-width: 480px;
+  background: rgba(18, 18, 20, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  border-radius: 14px;
+  padding: 14px 18px;
+  color: #ffffff;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+  animation: slide-down 0.3s ease-out;
+}
+
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hud-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.hud-title-group h2 {
+  font-size: 16px;
+  font-weight: 800;
+  margin: 2px 0 0;
+  color: #ffffff;
+}
+
+.hud-badge {
+  font-size: 10px;
+  font-weight: 800;
+  color: #ec4899;
+  background: rgba(236, 72, 153, 0.15);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.hud-close-btn {
+  background: #3f3f46;
+  color: #e4e4e7;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hud-stats-grid {
+  display: flex;
+  gap: 12px;
+}
+
+.hud-stat-box {
+  flex: 1;
+  background: #27272a;
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.hud-stat-label {
+  font-size: 11px;
+  color: #a1a1aa;
+}
+
+.hud-stat-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: #f4f4f5;
+}
+
+.hud-stat-val--highlight {
+  color: #10b981;
+  font-size: 16px;
+}
+
+.hud-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.avatar-picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #27272a;
+  padding: 6px 10px;
   border-radius: 8px;
 }
+
+.avatar-picker-label {
+  font-size: 11.5px;
+  color: #d4d4d8;
+  font-weight: 600;
+}
+
+.avatar-picker-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.avatar-picker-btn {
+  padding: 4px 10px;
+  background: #3f3f46;
+  color: #a1a1aa;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.avatar-picker-btn:hover {
+  background: #52525b;
+  color: #ffffff;
+}
+
+.avatar-picker-btn--active {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #60a5fa;
+}
+
+.hud-btn {
+  padding: 8px 14px;
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hud-btn--active {
+  background: #ef4444;
+}
+
+.hud-help-text {
+  font-size: 11px;
+  color: #9ca3af;
+  margin: 0;
+}
+
+.hud-alert-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.25) 0%, rgba(245, 158, 11, 0.2) 100%);
+  border: 1px solid #ef4444;
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+.hud-alert-icon {
+  font-size: 24px;
+}
+
+.hud-alert-body {
+  flex: 1;
+}
+
+.hud-alert-body strong {
+  font-size: 13px;
+  color: #ffffff;
+}
+
+.hud-alert-body p {
+  margin: 2px 0 6px;
+  font-size: 11.5px;
+  color: #fca5a5;
+}
+
+.hud-action-btn {
+  padding: 6px 12px;
+  background: #10b981;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ---------- Citizen Report Modal ---------- */
+
+.report-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.report-modal {
+  width: 100%;
+  max-width: 440px;
+  background: #18181b;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  padding: 22px;
+  color: #ffffff;
+}
+
+.report-modal h3 {
+  font-size: 16px;
+  margin: 0 0 6px;
+}
+
+.report-desc {
+  font-size: 12px;
+  color: #a1a1aa;
+  margin: 0 0 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.form-group label {
+  font-size: 12px;
+  color: #d4d4d8;
+  font-weight: 600;
+}
+
+.form-input {
+  background: #27272a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: #ffffff;
+  font-size: 12.5px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.btn-cancel {
+  padding: 8px 14px;
+  background: #3f3f46;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.report-submit-btn {
+  padding: 8px 16px;
+  background: #10b981;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.report-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 0;
+  gap: 8px;
+}
+
+.control-panel__btn-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.locate-me-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1.2;
+  padding: 9px 6px;
+  background: var(--accent-strong);
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.locate-me-btn:hover {
+  filter: brightness(1.12);
+}
+
+/* ---------- Digital Twin 48-Hour Forecast Time Slider Card ---------- */
+
+/* ============================================================
+   반응형
+   ============================================================ */
+
+/* 역추적 패널 — 위치·크기는 여기서 잡는다 (인라인 스타일이면 미디어쿼리로
+   덮을 수 없어 좁은 화면에서 시간 슬라이더와 겹쳐도 손댈 수가 없다). */
+.tracker-panel {
+  position: absolute;
+  bottom: 2rem;
+  right: 1rem;
+  width: 260px;
+  z-index: 920;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(249, 115, 22, 0.4);
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  padding: 14px 16px;
+  color: #f1f5f9;
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+}
+
+/* ---------- 태블릿 (<=1024px) ----------
+   사이드바는 그대로 두되, 사이드바 폭을 기준으로 밀어둔 요소들의
+   여유가 부족해지므로 살짝 좁힌다. */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .control-panel {
+    width: 264px;
+  }
+
+  .legend {
+    left: 296px;
+  }
+
+  .time-slider-wrap {
+    left: calc(50% + 148px);
+    width: calc(100% - 380px);
+  }
+}
+
+/* ---------- 모바일 (<=768px) ----------
+   사이드바를 왼쪽에서 밀어 넣고 빼는 드로어로 바꾼다.
+   닫으면 지도만, 열면 보드만 보는 식으로 화면을 온전히 쓰게 하는 게 목적. */
+@media (max-width: 768px) {
+  :root {
+    /* 드로어 폭 — 핸들 위치 계산과 반드시 같은 값을 써야 해서 변수로 뺀다. */
+    --drawer-w: min(86vw, 330px);
+  }
+
+  .control-panel {
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: auto;
+    width: var(--drawer-w);
+    max-height: none;
+    border-radius: 0 var(--radius-widget) var(--radius-widget) 0;
+    /* 열림(기본) — 화면 왼쪽에 딱 붙는다 */
+    transform: translateX(0);
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom))
+      calc(16px + env(safe-area-inset-left));
+    gap: 20px;
+    z-index: 1000;
+  }
+
+  /* 닫힘 — 화면 밖으로 완전히 뺀다. left:0이라 -100%면 충분하다
+     (데스크톱은 left:16px 여백이 있어 -24px을 더 빼야 한다). */
+  .app--panel-closed .control-panel {
+    transform: translateX(-100%);
+  }
+
+  /* 손잡이 — 드로어 폭이 데스크톱과 달라 이동 거리만 다시 잡는다.
+     엄지로 잡기 쉽게 크기도 키운다 (68px, 터치 타깃 44px 기준 충족). */
+  .control-panel-handle {
+    width: 30px;
+    height: 68px;
+    border-radius: 0 12px 12px 0;
+    transform: translate(var(--drawer-w), -50%);
+  }
+
+  .app--panel-closed .control-panel-handle {
+    transform: translate(0, -50%);
+  }
+
+  /* 헤더 오른쪽에 손잡이가 겹치지 않도록 여백 */
+  .control-panel__header {
+    padding-right: 34px;
+  }
+
+  .control-panel h1 {
+    font-size: 17px;
+  }
+
+  /* 범례는 상단으로 — 드로어가 닫혔을 때 지도 위 왼쪽은 핸들이 쓴다 */
+  .legend {
+    top: calc(8px + env(safe-area-inset-top));
+    left: 44px;
+    right: 8px;
+    bottom: auto;
+    padding: 8px 10px;
+  }
+
+  .legend__items {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+
+  /* 시간 슬라이더는 화면 하단 전체 폭. 드로어가 위를 덮으므로 별도 회피 불필요. */
+  .time-slider-wrap {
+    left: 8px;
+    right: 8px;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    width: auto;
+    max-width: none;
+    min-width: 0;
+    transform: none;
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .time-slider-tick {
+    font-size: 9px;
+  }
+
+  /* 역추적 패널도 하단 전체 폭으로 눕히고, 슬라이더 위에 쌓는다 */
+  .tracker-panel {
+    left: 8px;
+    right: 8px;
+    width: auto;
+    bottom: calc(150px + env(safe-area-inset-bottom));
+    max-height: 42vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* 지도 팝업이 좁은 화면을 넘지 않게 */
+  .wq-map-popup .maplibregl-popup-content {
+    max-width: calc(100vw - 32px);
+  }
+
+  /* 기본 컨트롤이 손가락에 맞도록 최소 높이 확보 */
+  .segmented__item,
+  .station-row,
+  .locate-me-btn,
+  .time-slider-reset {
+    min-height: 40px;
+  }
+}
+
+/* ---------- 소형 폰 (<=380px) ---------- */
+@media (max-width: 380px) {
+  :root {
+    --drawer-w: 92vw;
+  }
+
+  .time-slider-conditions {
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+
+  /* 눈금 라벨이 서로 겹치므로 양 끝과 중간만 남긴다 */
+  .time-slider-tick {
+    font-size: 8px;
+  }
+
+  .legend {
+    font-size: 10px;
+  }
+}
+
+/* ---------- 가로 모드 (낮은 높이) ----------
+   세로 공간이 부족하면 드로어를 전체 높이로 쓰고 하단 위젯을 납작하게. */
+@media (max-height: 480px) and (orientation: landscape) {
+  .control-panel {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    gap: 14px;
+  }
+
+  .time-slider-wrap {
+    bottom: 6px;
+    padding: 8px 12px;
+    gap: 6px;
+  }
+
+  .time-slider-track-wrap {
+    padding-bottom: 16px;
+  }
+
+  .tracker-panel {
+    max-height: 60vh;
+    bottom: 6px;
+    /* 가로 모드에서는 폭이 넉넉하니 오른쪽 고정으로 되돌린다 */
+    left: auto;
+    right: 8px;
+    width: 300px;
+  }
+
+  .legend {
+    display: none;
+  }
+}
+
+/* ---------- 모션 최소화 선호 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .control-panel,
+  .control-panel-handle {
+    transition: none;
+  }
+}
+
+/* ---------- 포인터가 거친 입력(터치) ----------
+   화면 폭과 무관하게 터치 기기면 타깃을 키운다. */
+@media (pointer: coarse) {
+  .time-slider-input::-webkit-slider-thumb {
+    width: 22px;
+    height: 22px;
+  }
+
+  .forecast-hour-btn,
+  .forecast-cell {
+    min-height: 36px;
+  }
+}
+
+/* ---------- High-Performance 3D Vector PokéStop Station Markers ---------- */
+
+.pokestop-3d-marker-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  z-index: 950 !important;
+  pointer-events: auto;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.pokestop-3d-marker-wrapper:hover {
+  transform: scale(1.22);
+  z-index: 999 !important;
+}
+
+.pokestop-3d-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 3px 9px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #f8fafc;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  white-space: nowrap;
+  margin-bottom: 4px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.pokestop-3d-badge .badge-name {
+  color: #e2e8f0;
+}
+
+.pokestop-3d-badge .badge-score {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 8px;
+  color: #ffffff;
+}
+
+/* 3D Visual Object Structure */
+.pokestop-visual-3d {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  width: 48px;
+  perspective: 600px;
+}
+
+.pokestop-head-group {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-style: preserve-3d;
+  animation: pokestop-float-anim 3s infinite ease-in-out;
+}
+
+@keyframes pokestop-float-anim {
+  0%, 100% { transform: translateY(0px) rotateX(15deg); }
+  50% { transform: translateY(-8px) rotateX(25deg); }
+}
+
+.pokestop-ring-outer {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid var(--risk-color, #3b82f6);
+  background: rgba(15, 23, 42, 0.5);
+  box-shadow: 0 0 14px var(--risk-color, #3b82f6), inset 0 0 8px var(--risk-color, #3b82f6);
+  animation: pokestop-spin-anim 4s infinite linear;
+}
+
+@keyframes pokestop-spin-anim {
+  0% { transform: rotateY(0deg) rotateZ(0deg); }
+  50% { transform: rotateY(180deg) rotateZ(180deg); }
+  100% { transform: rotateY(360deg) rotateZ(360deg); }
+}
+
+.pokestop-glass-disc {
+  position: relative;
+  z-index: 2;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(4px);
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 10px var(--risk-color, #3b82f6);
+}
+
+.pokestop-core-icon {
+  font-size: 13px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+  animation: pokestop-pulse-core 2s infinite ease-in-out;
+}
+
+@keyframes pokestop-pulse-core {
+  0%, 100% { transform: scale(0.9); }
+  50% { transform: scale(1.15); }
+}
+
+.pokestop-beam-pillar {
+  width: 3px;
+  height: 20px;
+  background: linear-gradient(to bottom, var(--risk-color, #3b82f6) 0%, rgba(255, 255, 255, 0.15) 100%);
+  box-shadow: 0 0 10px var(--risk-color, #3b82f6);
+  border-radius: 2px;
+}
+
+.pokestop-base-plate {
+  width: 24px;
+  height: 6px;
+  background: rgba(30, 41, 59, 0.9);
+  border: 1.5px solid var(--risk-color, #3b82f6);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--risk-color, #3b82f6);
+}
+
+.pokestop-ground-shadow {
+  width: 26px;
+  height: 8px;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0) 75%);
+  border-radius: 50%;
+  margin-top: 1px;
+}
+
+
+
