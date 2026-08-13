@@ -74,7 +74,7 @@
   left: 16px;
   bottom: 16px;
   width: 300px;
-  z-index: 20;
+  z-index: 1000;
   display: flex;
   flex-direction: column;
   background: var(--surface-1);
@@ -106,6 +106,23 @@
   justify-content: space-between;
   gap: 12px;
   padding: 0 2px;
+}
+
+/* 모바일 바텀시트 펼침/접힘 토글 — 데스크톱에서는 사이드바가 항상 완전히
+   보이는 고정 카드라 필요 없으므로 기본은 숨김, 아래 모바일 미디어쿼리에서만
+   보이게 한다. */
+.control-panel-toggle {
+  display: none;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--surface-2);
+  border: none;
+  border-radius: 999px;
+  color: var(--text-secondary);
+  cursor: pointer;
 }
 
 .control-panel__header h1 {
@@ -1513,11 +1530,53 @@
 }
 
 @media (max-width: 768px) {
+  /* 사이드바가 지도의 80%를 가리던 걸, 기본은 헤더만 보이는 얇은 바텀시트로
+     접어두고 토글 버튼으로 펼치는 방식으로 바꾼다. */
+  .control-panel {
+    top: auto;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    width: auto;
+    max-height: 96px;
+    padding: 16px;
+    gap: 18px;
+    overflow: hidden;
+    transition: max-height 0.28s ease;
+  }
+
+  .control-panel.control-panel--expanded {
+    max-height: 78vh;
+    overflow-y: auto;
+  }
+
+  .control-panel-toggle {
+    display: inline-flex;
+  }
+
+  /* 범례는 접힌 바텀시트와 안 겹치게 위로 옮긴다. */
+  .legend {
+    top: 8px;
+    left: 8px;
+    bottom: auto;
+  }
+
+  .legend__items {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+
+  /* 예보 바는 접힌 바텀시트 바로 위에 뜨게 하고(펼쳐지면 시트가 위를 덮으며
+     자연스럽게 가려짐), 폭은 좌우 여백만 남기고 꽉 채운다. */
   .forecast-slider-card {
-    left: 50%;
-    width: calc(100% - 32px);
-    bottom: 16px;
-    padding: 12px;
+    left: 8px;
+    right: 8px;
+    bottom: 112px;
+    width: auto;
+    max-width: none;
+    min-width: 0;
+    transform: none;
+    padding: 12px 14px;
   }
 }
 

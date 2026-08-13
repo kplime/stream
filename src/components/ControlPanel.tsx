@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { AlertTriangle, MapPin, Siren } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { AlertTriangle, ChevronDown, ChevronUp, MapPin, Siren } from 'lucide-react'
 import { useRiskScores } from '../hooks/useRiskScores'
 import { useMapStore } from '../store/useMapStore'
 import { RIVER_NAMES, RISK_LEVEL_ORDER, TRACK_LABELS, type Track } from '../types/risk'
@@ -8,6 +8,9 @@ import { RISK_COLORS } from '../lib/mapStyle'
 const TRACKS: Track[] = ['A', 'B']
 
 export function ControlPanel() {
+  // 모바일에서만 쓰는 바텀시트 펼침 상태 (데스크톱은 CSS에서 토글 버튼 자체를 숨김).
+  const [expanded, setExpanded] = useState(false)
+
   const track = useMapStore((s) => s.track)
   const setTrack = useMapStore((s) => s.setTrack)
   const visibleRivers = useMapStore((s) => s.visibleRivers)
@@ -38,12 +41,20 @@ export function ControlPanel() {
   }, [scores, track])
 
   return (
-    <aside className="control-panel">
+    <aside className={`control-panel ${expanded ? 'control-panel--expanded' : ''}`}>
       <header className="control-panel__header">
         <div>
           <h1>부산 도심하천 수질예보</h1>
           <p className="control-panel__subtitle-text">온천천 · 동천 · 괴정천 실시간 위험도 예측</p>
         </div>
+        <button
+          type="button"
+          className="control-panel-toggle"
+          onClick={() => setExpanded((v) => !v)}
+          aria-label={expanded ? '패널 접기' : '패널 펼치기'}
+        >
+          {expanded ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+        </button>
       </header>
 
       <div className="control-panel__banner-wrapper">
