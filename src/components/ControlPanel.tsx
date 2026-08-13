@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { ForecastPanel } from './ForecastPanel'
 import { useRiskScores } from '../hooks/useRiskScores'
 import { useWeather } from '../hooks/useWeather'
 import { RISK_COLORS } from '../lib/mapStyle'
@@ -6,10 +7,9 @@ import { useMapStore } from '../store/useMapStore'
 import {
   NO_REALTIME_SENSOR_RIVERS,
   RIVER_NAMES,
-  RISK_LEVEL_ORDER,
-  TRACK_DESCRIPTIONS,
+  RIVER_PRIMARY_TRACK,
   TRACK_LABELS,
-  TRACK_RIVERS,
+  type RiskScore,
   type Track,
 } from '../types/risk'
 
@@ -28,18 +28,19 @@ export function ControlPanel() {
   const { data: scores, usingMock } = useRiskScores()
   const { data: weather } = useWeather()
 
-  const trackRivers = TRACK_RIVERS[track]
-
+  // station_id 기준으로 A+B 묶기
   const stationsByRiver = useMemo(() => {
-    const filtered = (scores ?? []).filter((s) => s.track === track)
-    const grouped = new Map<string, typeof filtered>()
-    for (const river of RIVER_NAMES) grouped.set(river, [])
-    for (const s of filtered) grouped.get(s.river_name)?.push(s)
-    for (const list of grouped.values()) {
-      list.sort((a, b) => RISK_LEVEL_ORDER[b.risk_level] - RISK_LEVEL_ORDER[a.risk_level])
+    const grouped = new Map<string, Map<string, { A?: RiskScore; B?: RiskScore }>>()
+    for (const river of RIVER_NAMES) grouped.set(river, new Map())
+    for (const s of scores ?? []) {
+      const riverMap = grouped.get(s.river_name)
+      if (!riverMap) continue
+      const existing = riverMap.get(s.station_id) ?? {}
+      existing[s.track as 'A' | 'B'] = s
+      riverMap.set(s.station_id, existing)
     }
     return grouped
-  }, [scores, track])
+  }, [scores])
 
   return (
     <aside className="control-panel">
@@ -85,7 +86,7 @@ export function ControlPanel() {
       )}
 
       <section className="control-section">
-        <h2>예측 트랙</h2>
+        <h2>예측 트랙 (팝업 기준)</h2>
         <div className="segmented">
           {TRACKS.map((t) => (
             <button
@@ -98,13 +99,12 @@ export function ControlPanel() {
             </button>
           ))}
         </div>
-        <p className="track-desc">{TRACK_DESCRIPTIONS[track]}</p>
       </section>
 
       <section className="control-section">
         <h2>하천 표시</h2>
         <div className="chip-row">
-          {trackRivers.map((river) => (
+          {RIVER_NAMES.map((river) => (
             <label key={river} className="chip">
               <input
                 type="checkbox"
@@ -112,6 +112,9 @@ export function ControlPanel() {
                 onChange={() => toggleRiver(river)}
               />
               {river}
+              <span className="chip-track-badge">
+                {TRACK_LABELS[RIVER_PRIMARY_TRACK[river]]}
+              </span>
               {NO_REALTIME_SENSOR_RIVERS.has(river) && (
                 <span className="chip-badge chip-badge--warn" title="부산 자동측정망 미설치 구간">
                   센서없음
@@ -126,38 +129,52 @@ export function ControlPanel() {
         </label>
       </section>
 
+      <ForecastPanel />
+
       <section className="control-section control-section--grow">
         <h2>측정소</h2>
         <div className="station-list">
-          {trackRivers.filter((r) => visibleRivers.has(r)).map((river) => (
+          {RIVER_NAMES.filter((r) => visibleRivers.has(r)).map((river) => (
             <div key={river} className="station-list__group">
               <h3>
                 {river}
+                <span className="group-track-label">
+                  {TRACK_LABELS[RIVER_PRIMARY_TRACK[river]]}
+                </span>
                 {NO_REALTIME_SENSOR_RIVERS.has(river) && (
                   <span className="group-badge group-badge--warn">실시간센서없음</span>
                 )}
               </h3>
-              {stationsByRiver.get(river)?.map((s) => (
-                <button
-                  key={s.station_id}
-                  type="button"
-                  className="station-row"
-                  onClick={() => {
-                    flyTo({ lng: s.lng, lat: s.lat, zoom: 15.5 })
-                    selectStation({ stationId: s.station_id, riverName: s.river_name, lng: s.lng, lat: s.lat })
-                  }}
-                >
-                  <span
-                    className="station-row__dot"
-                    style={{ background: RISK_COLORS[s.risk_level] }}
-                  />
-                  <span className="station-row__id">{s.station_id}</span>
-                  <span className="station-row__score">{Math.round(s.risk_score * 100)}%</span>
-                  <span className="station-row__time">
-                    {Math.round((Date.now() - new Date(s.updated_at).getTime()) / 60000)}분 전
-                  </span>
-                </button>
-              ))}
+              {[...( stationsByRiver.get(river) ?? new Map<string, { A?: RiskScore; B?: RiskScore }>()).entries()].map(([stationId, both]) => {
+                const ref = both.A ?? both.B!
+                const colorA = RISK_COLORS[both.A?.risk_level ?? 'unknown']
+                const colorB = RISK_COLORS[both.B?.risk_level ?? 'unknown']
+                return (
+                  <button
+                    key={stationId}
+                    type="button"
+                    className="station-row station-row--dual"
+                    onClick={() => {
+                      flyTo({ lng: ref.lng, lat: ref.lat, zoom: 15.5 })
+                      selectStation({ stationId: ref.station_id, riverName: ref.river_name, lng: ref.lng, lat: ref.lat })
+                    }}
+                  >
+                    <span className="station-row__id">{stationId}</span>
+                    <span className="station-row__dual-scores">
+                      {both.A && (
+                        <span className="dual-badge dual-badge--a" style={{ background: colorA }}>
+                          A {Math.round(both.A.risk_score * 100)}%
+                        </span>
+                      )}
+                      {both.B && (
+                        <span className="dual-badge dual-badge--b" style={{ borderColor: colorB, color: colorB }}>
+                          B {Math.round(both.B.risk_score * 100)}%
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                )
+              })}
             </div>
           ))}
         </div>

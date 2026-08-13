@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { TRACK_RIVERS, type RiverName, type Track } from '../types/risk'
+import { RIVER_NAMES, type RiverName, type Track } from '../types/risk'
 
 interface SelectedStation {
   stationId: string
@@ -23,14 +23,17 @@ interface MapState {
 
   flyToTarget: { lng: number; lat: number; zoom?: number } | null
   flyTo: (target: { lng: number; lat: number; zoom?: number } | null) => void
+
+  // 시간 슬라이더: null = 현재 실시간, 1~48 = 예측 시간
+  forecastHour: number | null
+  setForecastHour: (hour: number | null) => void
 }
 
 export const useMapStore = create<MapState>((set) => ({
   track: 'A',
-  // Track 변경 시 해당 트랙의 기본 하천으로 visibleRivers 자동 갱신
-  setTrack: (track) => set({ track, visibleRivers: new Set(TRACK_RIVERS[track]) }),
+  setTrack: (track) => set({ track }),
 
-  visibleRivers: new Set(TRACK_RIVERS['A']),
+  visibleRivers: new Set(RIVER_NAMES),
   toggleRiver: (river) =>
     set((state) => {
       const next = new Set(state.visibleRivers)
@@ -47,4 +50,7 @@ export const useMapStore = create<MapState>((set) => ({
 
   flyToTarget: null,
   flyTo: (flyToTarget) => set({ flyToTarget }),
+
+  forecastHour: null,
+  setForecastHour: (forecastHour) => set({ forecastHour }),
 }))

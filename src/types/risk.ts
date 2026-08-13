@@ -13,6 +13,7 @@ export interface RiskScore {
   risk_score: number
   risk_level: RiskLevel
   updated_at: string
+  shap?: Record<string, number> | null
 }
 
 export const RIVER_NAMES: RiverName[] = ['온천천', '동천', '괴정천']
@@ -22,6 +23,13 @@ export const RIVER_NAMES: RiverName[] = ['온천천', '동천', '괴정천']
 export const TRACK_RIVERS: Record<Track, RiverName[]> = {
   A: ['온천천'],
   B: ['동천', '괴정천'],
+}
+
+// 하천별 주 트랙 — 지도 색상 및 측정소 목록 기준
+export const RIVER_PRIMARY_TRACK: Record<RiverName, Track> = {
+  '온천천': 'A',
+  '동천':   'B',
+  '괴정천': 'B',
 }
 
 export const TRACK_LABELS: Record<Track, string> = {
