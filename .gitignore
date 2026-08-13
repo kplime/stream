@@ -34,15 +34,22 @@ __pycache__/
 *.pyo
 
 # ML 모델 바이너리 (재생성 가능)
-pipeline/models/
+# 단, 추론에 쓰는 최종 모델 2개는 GitHub Actions 자동 실행에 필요하므로 추적한다.
+# (러너에는 로컬 파일이 없어서 커밋돼 있지 않으면 파이프라인이 뜨지 않는다)
+# 디렉터리 자체를 제외하면(`pipeline/models/`) 그 안의 파일은 다시 포함할 수
+# 없다. 내용물을 제외하는 형태로 써야 아래 부정 패턴이 먹는다.
+pipeline/models/*
+!pipeline/models/track_a_final_model.pkl
+!pipeline/models/track_b_final_model.pkl
 
 # 다운로드 데이터 (재실행으로 복구 가능)
 pipeline/data/water_quality_raw.csv
-pipeline/data/water_quality_processed.csv
 pipeline/data/rainfall_monthly.csv
 pipeline/data/tide_monthly.csv
 pipeline/data/latest_forecast.json
 pipeline/data/latest_risk_scores.json
+# water_quality_processed.csv 는 추론의 기준 수질값이라 함께 추적한다
+# (forecast.py의 load_current_readings, ml_pipeline --predict-only 가 읽는다)
 
 # 파이프라인 런타임 secrets
 pipeline/.env

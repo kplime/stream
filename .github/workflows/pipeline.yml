@@ -1,0 +1,55 @@
+name: 수질 위험도 파이프라인
+
+# 수질 실측은 월 1회라 값 자체는 자주 바뀌지 않지만, 모델 입력의 기상·조위가
+# 시간 단위로 변하고 48시간 예보 창도 계속 앞으로 밀린다. 주기 실행을 걸어야
+# 대시보드의 "위험도 산출" 시각이 최신으로 유지된다.
+on:
+  schedule:
+    # 매시 정각(UTC). GitHub의 예약 실행은 혼잡 시 수 분~십수 분 밀릴 수 있다.
+    - cron: '0 * * * *'
+  workflow_dispatch:        # 발표 직전 수동 실행용
+
+# 앞선 실행이 아직 돌고 있으면 새 실행이 기다리지 않고 이어받는다.
+# 같은 테이블에 동시에 upsert 하면 배치 정리 로직이 꼬인다.
+concurrency:
+  group: water-pipeline
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: pipeline/requirements.txt
+
+      - name: 의존성 설치
+        working-directory: pipeline
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 실시간 위험도 산출 (risk_scores)
+        working-directory: pipeline
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+        # --predict-only: 학습은 하지 않고 저장된 최종 모델로 추론만 한다.
+        # 주기 실행에서 매번 재학습하면 무의미하게 느리고 모델이 흔들린다.
+        run: python ml_pipeline.py --predict-only
+
+      - name: 48시간 예보 산출 (risk_forecast)
+        working-directory: pipeline
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+          KHOA_API_KEY: ${{ secrets.KHOA_API_KEY }}
+        run: python forecast.py --hours 48
