@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, ChevronLeft, ChevronRight, MapPin, Siren } from 'lucide-react'
 import { ForecastPanel } from './ForecastPanel'
 import { useDisplayScores } from '../hooks/useDisplayScores'
@@ -17,11 +17,12 @@ import {
 const TRACKS: Track[] = ['A', 'B']
 
 export function ControlPanel() {
-  // 모바일 사이드 드로어 열림 상태 (데스크톱은 CSS가 항상 펼친 상태로 둔다).
-  // 처음에는 닫아 두어 좁은 화면에서 지도가 먼저 보이게 한다.
-  const [expanded, setExpanded] = useState(false)
+  // 패널 열림 상태는 store에 있다 (범례·시간 슬라이더도 같이 반응해야 해서).
+  const expanded = useMapStore((s) => s.panelOpen)
+  const setExpanded = useMapStore((s) => s.setPanelOpen)
+  const togglePanel = useMapStore((s) => s.togglePanel)
 
-  // 드로어가 실제로 동작하는 폭인지 — 닫힌 패널에 inert를 걸지 판단하는 데만 쓴다.
+  // 좁은 화면인지 — 닫힌 패널에 inert를 걸지 판단하는 데 쓴다.
   // CSS의 768px 분기와 값을 맞춰야 한다.
   const [isMobile, setIsMobile] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches,
@@ -33,18 +34,24 @@ export function ControlPanel() {
     return () => mq.removeEventListener('change', onChange)
   }, [])
 
-  // 데스크톱 폭으로 넓어지면 열림 상태를 초기화해 핸들 위치가 어긋나지 않게 한다.
+  // 좁은 화면으로 처음 들어오면 접어서 지도가 먼저 보이게 한다.
+  // 넓어질 때 자동으로 펴지는 않는다 — 사용자가 직접 접은 걸 되돌리면 성가시다.
+  const didAutoCollapse = useRef(false)
   useEffect(() => {
-    if (!isMobile) setExpanded(false)
-  }, [isMobile])
+    if (isMobile && !didAutoCollapse.current) {
+      didAutoCollapse.current = true
+      setExpanded(false)
+    }
+  }, [isMobile, setExpanded])
 
-  // 드로어가 열려 있을 때 Esc로 닫기 — 모바일 브라우저 외장 키보드/접근성 대응
+  // 좁은 화면에서 패널이 지도를 덮고 있을 때만 Esc로 닫는다.
+  // 넓은 화면에서는 패널이 지도를 가리지 않으므로 Esc를 가로채지 않는다.
   useEffect(() => {
-    if (!expanded) return
+    if (!expanded || !isMobile) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setExpanded(false) }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [expanded])
+  }, [expanded, isMobile, setExpanded])
 
   const track = useMapStore((s) => s.track)
   const setTrack = useMapStore((s) => s.setTrack)
@@ -83,7 +90,9 @@ export function ControlPanel() {
     <>
       <aside
         id="control-panel"
-        className={`control-panel ${expanded ? 'control-panel--open' : ''}`}
+        // 열림/닫힘 표현은 App이 루트에 거는 .app--panel-closed 하나로 통일한다.
+        // (범례·슬라이더도 같은 클래스로 함께 움직여야 해서)
+        className="control-panel"
         // 닫힌 드로어 안의 컨트롤이 스크린리더·탭 이동에 잡히지 않도록.
         // 데스크톱에서는 CSS가 항상 펼친 상태로 두므로 inert를 걸지 않는다.
         aria-hidden={isMobile && !expanded}
@@ -268,11 +277,12 @@ export function ControlPanel() {
           모바일에서만 보이고, 열림 상태에 따라 드로어 폭만큼 옆으로 밀린다. */}
       <button
         type="button"
-        className={`control-panel-handle ${expanded ? 'control-panel-handle--open' : ''}`}
-        onClick={() => setExpanded((v) => !v)}
+        className="control-panel-handle"
+        onClick={togglePanel}
         aria-expanded={expanded}
         aria-controls="control-panel"
-        aria-label={expanded ? '패널 닫고 지도 보기' : '패널 열기'}
+        aria-label={expanded ? '왼쪽 패널 닫기' : '왼쪽 패널 열기'}
+        title={expanded ? '왼쪽 패널 닫기 (지도 넓게 보기)' : '왼쪽 패널 열기'}
       >
         {expanded ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
       </button>

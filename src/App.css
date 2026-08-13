@@ -108,11 +108,73 @@
   padding: 0 2px;
 }
 
-/* 모바일 드로어 손잡이 — 데스크톱에서는 사이드바가 항상 완전히 보이는
-   고정 카드라 필요 없으므로 기본은 숨김, 아래 모바일 미디어쿼리에서만
-   보이게 한다. (자세한 배치는 그쪽 블록에 있다) */
+/* 왼쪽 패널 여닫이 손잡이 — 화면 폭과 무관하게 항상 쓸 수 있다.
+   패널 오른쪽 모서리에 붙어 패널과 함께 움직인다.
+   aside의 형제로 렌더된다 (aside가 overflow-y:auto라 자식으로 두면 잘림). */
 .control-panel-handle {
-  display: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 26px;
+  height: 60px;
+  padding: 0;
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  border-left: none;
+  border-radius: 0 10px 10px 0;
+  background: rgba(246, 246, 248, 0.72);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  color: rgba(0, 0, 0, 0.7);
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  z-index: 1001;
+  /* 열림(기본): 패널 오른쪽 모서리 = 16px 여백 + 300px 폭.
+     닫힘은 .app--panel-closed 에서 화면 왼쪽 끝으로 되돌린다. */
+  transform: translate(316px, -50%);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.app--panel-closed .control-panel-handle {
+  transform: translate(0, -50%);
+}
+
+.control-panel-handle:hover {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.control-panel-handle:active {
+  background: rgba(236, 236, 240, 0.9);
+}
+
+/* 패널 여닫이 — 넓은 화면에서도 접을 수 있다.
+   left:16px 여백이 있어 -100%만으로는 그 16px이 남으므로 함께 빼준다. */
+.control-panel {
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.app--panel-closed .control-panel {
+  transform: translateX(calc(-100% - 24px));
+}
+
+/* 패널이 접히면 패널 폭만큼 밀려 있던 요소들이 자리를 회수한다.
+   min-width로 한정하는 이유: 이 선택자는 클래스 2개(0,2,0)라 모바일 블록의
+   `.legend`/`.time-slider-wrap`(0,1,0)보다 특이도가 높다. 한정하지 않으면
+   순서와 무관하게 모바일 배치를 덮어써서, 좁은 화면에서 패널을 닫는 순간
+   슬라이더가 화면 밖으로 밀려난다. */
+@media (min-width: 769px) {
+  .app--panel-closed .legend {
+    left: 44px;
+  }
+
+  .app--panel-closed .time-slider-wrap {
+    left: 50%;
+    width: calc(100% - 96px);
+  }
 }
 
 .control-panel__header h1 {
@@ -1892,8 +1954,8 @@
     width: var(--drawer-w);
     max-height: none;
     border-radius: 0 var(--radius-widget) var(--radius-widget) 0;
-    /* 닫힘: 화면 밖으로 완전히 뺀다 */
-    transform: translateX(-100%);
+    /* 열림(기본) — 화면 왼쪽에 딱 붙는다 */
+    transform: translateX(0);
     transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -1903,48 +1965,26 @@
     z-index: 1000;
   }
 
-  .control-panel.control-panel--open {
-    transform: translateX(0);
+  /* 닫힘 — 화면 밖으로 완전히 뺀다. left:0이라 -100%면 충분하다
+     (데스크톱은 left:16px 여백이 있어 -24px을 더 빼야 한다). */
+  .app--panel-closed .control-panel {
+    transform: translateX(-100%);
   }
 
-  /* 손잡이 — 드로어 오른쪽 모서리에 붙어 같이 움직인다.
-     세로 막대 형태라 엄지로 잡기 쉽고, 44px 이상이라 터치 타깃 기준도 만족한다. */
+  /* 손잡이 — 드로어 폭이 데스크톱과 달라 이동 거리만 다시 잡는다.
+     엄지로 잡기 쉽게 크기도 키운다 (68px, 터치 타깃 44px 기준 충족). */
   .control-panel-handle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: absolute;
-    top: 50%;
-    left: 0;
     width: 30px;
     height: 68px;
-    padding: 0;
-    border: 0.5px solid rgba(0, 0, 0, 0.08);
-    border-left: none;
     border-radius: 0 12px 12px 0;
-    background: rgba(246, 246, 248, 0.75);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    color: rgba(0, 0, 0, 0.75);
-    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.14);
-    cursor: pointer;
-    z-index: 1001;
-    transform: translate(0, -50%);
-    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
-    /* iOS에서 탭 시 회색 박스가 번쩍이는 것 방지 */
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-  }
-
-  .control-panel-handle--open {
     transform: translate(var(--drawer-w), -50%);
   }
 
-  .control-panel-handle:active {
-    background: rgba(236, 236, 240, 0.9);
+  .app--panel-closed .control-panel-handle {
+    transform: translate(0, -50%);
   }
 
-  /* 헤더는 드로어 안에서만 보이므로 토글 버튼 자리는 필요 없다 */
+  /* 헤더 오른쪽에 손잡이가 겹치지 않도록 여백 */
   .control-panel__header {
     padding-right: 34px;
   }

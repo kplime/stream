@@ -24,6 +24,13 @@ interface MapState {
   flyToTarget: { lng: number; lat: number; zoom?: number } | null
   flyTo: (target: { lng: number; lat: number; zoom?: number } | null) => void
 
+  // 왼쪽 패널 열림 여부. ControlPanel 안에 두지 않고 store로 올린 이유는
+  // 범례·시간 슬라이더가 패널 폭만큼 밀려 있어서, 패널이 접히면 그 요소들도
+  // 같이 중앙으로 돌아와야 하기 때문이다. App이 이 값으로 루트에 클래스를 건다.
+  panelOpen: boolean
+  setPanelOpen: (open: boolean) => void
+  togglePanel: () => void
+
   pokemonGoMode: boolean
   togglePokemonGoMode: () => void
 
@@ -67,6 +74,12 @@ export const useMapStore = create<MapState>((set) => ({
 
   flyToTarget: null,
   flyTo: (flyToTarget) => set({ flyToTarget }),
+
+  // 넓은 화면에서는 펼친 상태로 시작. 좁은 화면에서는 ControlPanel이 마운트 시
+  // 닫아서 지도가 먼저 보이게 한다.
+  panelOpen: true,
+  setPanelOpen: (panelOpen) => set({ panelOpen }),
+  togglePanel: () => set((state) => ({ panelOpen: !state.panelOpen })),
 
   pokemonGoMode: false,
   togglePokemonGoMode: () => set((state) => ({ pokemonGoMode: !state.pokemonGoMode })),
