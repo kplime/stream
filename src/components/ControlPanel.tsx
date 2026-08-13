@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { ForecastPanel } from './ForecastPanel'
-import { useRiskScores } from '../hooks/useRiskScores'
+import { useDisplayScores } from '../hooks/useDisplayScores'
 import { useWeather } from '../hooks/useWeather'
 import { RISK_COLORS } from '../lib/mapStyle'
 import { useMapStore } from '../store/useMapStore'
@@ -25,7 +25,8 @@ export function ControlPanel() {
   const flyTo = useMapStore((s) => s.flyTo)
   const selectStation = useMapStore((s) => s.selectStation)
 
-  const { data: scores, usingMock } = useRiskScores()
+  // 시간 슬라이더를 따라간다 — 지도는 예보인데 목록만 실시간이면 값이 어긋난다
+  const { displayScores: scores, usingMock, isForecast, forecastHour } = useDisplayScores()
   const { data: weather } = useWeather()
 
   // station_id 기준으로 A+B 묶기
@@ -132,7 +133,14 @@ export function ControlPanel() {
       <ForecastPanel />
 
       <section className="control-section control-section--grow">
-        <h2>측정소</h2>
+        <h2>
+          측정소
+          {isForecast && (
+            <span className="group-badge" style={{ marginLeft: 6 }}>
+              +{forecastHour}시간 후 예측
+            </span>
+          )}
+        </h2>
         <div className="station-list">
           {RIVER_NAMES.filter((r) => visibleRivers.has(r)).map((river) => (
             <div key={river} className="station-list__group">

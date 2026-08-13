@@ -3,8 +3,8 @@ import type { FeatureCollection } from 'geojson'
 import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { STATION_COORDS_FALLBACK, useForecast } from '../hooks/useForecast'
-import { useRiskScores } from '../hooks/useRiskScores'
+import { useDisplayScores } from '../hooks/useDisplayScores'
+import { useForecast } from '../hooks/useForecast'
 import { useRiverGeometry } from '../hooks/useRiverGeometry'
 import { useWeather } from '../hooks/useWeather'
 import {
@@ -29,7 +29,7 @@ import {
 import { traceUpstream, type TrackerResult } from '../lib/pollutionTracker'
 import { buildRiskSegments } from '../lib/riverSegments'
 import { useMapStore } from '../store/useMapStore'
-import { RIVER_NAMES, RIVER_PRIMARY_TRACK, TRACK_LABELS, type RiverName, type RiskLevel, type RiskScore, type Track } from '../types/risk'
+import { RIVER_NAMES, RIVER_PRIMARY_TRACK, TRACK_LABELS, type RiverName, type RiskScore } from '../types/risk'
 
 const EMPTY_FC: FeatureCollection = { type: 'FeatureCollection', features: [] }
 
@@ -66,20 +66,22 @@ function buildShapHtml(shapRaw: string | null | undefined, track: 'A' | 'B'): st
 }
 
 // 팝업 HTML 전체 생성
-// liveScores: 실시간 scores — 예보 모드에서 SHAP 값 보완용 (forecast엔 SHAP 없음)
+// stationId만 받아 allScores에서 조회한다 — 슬라이더로 시점이 바뀌면
+// 같은 stationId로 다시 호출해 팝업 내용을 갱신할 수 있어야 하기 때문.
+// liveScores: 실시간 scores — 예보 행에 SHAP이 없을 때의 대체용
 function buildPopupHtml(
-  props: Record<string, unknown>,
+  stationId: string,
   allScores: RiskScore[],
   liveScores?: RiskScore[],
 ): string {
-  const stationId = String(props.station_id ?? '')
-  const riverName = String(props.river_name ?? '')
-  const updatedAt = String(props.updated_at ?? '')
-
   // 현재 표시 중인 위험도 (forecast or live)
   const stationScores = allScores.filter((s) => s.station_id === stationId)
   const scoreA = stationScores.find((s) => s.track === 'A')
   const scoreB = stationScores.find((s) => s.track === 'B')
+
+  const ref = scoreA ?? scoreB
+  const riverName = ref?.river_name ?? ''
+  const updatedAt = ref?.updated_at ?? ''
 
   // SHAP은 실시간 scores에서 조회 (forecast에 없는 경우 fallback)
   const shapSource = (liveScores ?? allScores).filter((s) => s.station_id === stationId)
@@ -174,6 +176,7 @@ export function MapView() {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const popupRef = useRef<maplibregl.Popup | null>(null)
+  const openStationRef = useRef<string | null>(null)  // 열린 팝업의 측정소 (시점 변경 시 갱신용)
   const buildingLayerIdRef = useRef<string>(NATIVE_BUILDINGS_3D_LAYER_ID)
   const scoresRef = useRef<RiskScore[]>([])      // 표시 scores (forecast or live)
   const liveScoresRef = useRef<RiskScore[]>([])  // 항상 실시간 scores (SHAP 조회용)
@@ -191,47 +194,15 @@ export function MapView() {
   const forecastHour = useMapStore((s) => s.forecastHour)
 
   const { data: riverGeometry } = useRiverGeometry()
-  const { data: scores } = useRiskScores()
   const { data: forecast } = useForecast()
   const { data: weather } = useWeather()
-
-  // 측정소 lat/lng 조회용 맵 (forecast에는 좌표 없음)
-  const stationCoords = useMemo(() => {
-    const m = new Map<string, { lat: number; lng: number; river_name: string }>()
-    for (const s of scores ?? []) {
-      if (!m.has(s.station_id)) m.set(s.station_id, { lat: s.lat, lng: s.lng, river_name: s.river_name })
-    }
-    return m
-  }, [scores])
-
-  // 예측 모드면 해당 시간 forecast 데이터, 아니면 실시간 scores
-  const displayScores = useMemo((): RiskScore[] => {
-    if (!forecastHour || !forecast?.length) return scores ?? []
-    return forecast
-      .filter((f) => f.hours_ahead === forecastHour)
-      .map((f) => {
-        const live = stationCoords.get(f.station_id)
-        const fallback = STATION_COORDS_FALLBACK[f.station_id]
-        const coords = live ?? (fallback ? { ...fallback, river_name: f.river_name } : { lat: 0, lng: 0, river_name: f.river_name })
-        return {
-          station_id: f.station_id,
-          river_name: coords.river_name as RiverName,
-          track: f.track as Track,
-          lat: coords.lat,
-          lng: coords.lng,
-          risk_score: f.risk_score,
-          risk_level: f.risk_level as RiskLevel,
-          updated_at: f.forecast_dt,
-          // 예보 SHAP을 그대로 실어 보낸다 (없으면 팝업이 실시간 SHAP으로 대체)
-          shap: f.shap as RiskScore['shap'],
-        }
-      })
-  }, [forecastHour, forecast, scores, stationCoords])
+  // 시간 슬라이더가 반영된 표시용 위험도 (ControlPanel과 동일한 소스)
+  const { displayScores, liveScores } = useDisplayScores()
 
   // scoresRef: 클릭 핸들러에서 항상 최신 데이터 참조
   useEffect(() => { scoresRef.current = displayScores }, [displayScores])
-  // liveScoresRef: 예보 모드에서도 SHAP 조회를 위해 실시간 scores 유지
-  useEffect(() => { liveScoresRef.current = scores ?? [] }, [scores])
+  // liveScoresRef: 예보 행에 SHAP이 없을 때의 대체용
+  useEffect(() => { liveScoresRef.current = liveScores }, [liveScores])
   // 역추적 유속 계산에 쓸 강수량
   // 예보 모드에서는 해당 시점의 예보 강수량을, 실시간 모드에서는 현재 관측값을 쓴다
   const effectiveRainMm = useMemo(() => {
@@ -571,14 +542,9 @@ export function MapView() {
     const { s } = nearest
     selectStation({ stationId: s.station_id, riverName: s.river_name as RiverName, lng: s.lng, lat: s.lat })
 
-    const props: Record<string, unknown> = {
-      station_id: s.station_id,
-      river_name: s.river_name,
-      track: s.track,
-      risk_score: s.risk_score,
-      risk_level: s.risk_level,
-      updated_at: s.updated_at,
-    }
+    // 열린 팝업의 대상을 기억해 둔다.
+    // 시간 슬라이더로 displayScores가 바뀌면 아래 effect가 이 값으로 팝업을 다시 그린다.
+    openStationRef.current = s.station_id
 
     popupRef.current?.remove()
     popupRef.current = new maplibregl.Popup({
@@ -588,9 +554,22 @@ export function MapView() {
       maxWidth: '300px',
     })
       .setLngLat([s.lng, s.lat])
-      .setHTML(buildPopupHtml(props, allScores, liveScoresRef.current))
+      .setHTML(buildPopupHtml(s.station_id, allScores, liveScoresRef.current))
       .addTo(map)
+
+    // 닫으면 추적 대상 해제 — 닫힌 팝업을 갱신하려 들지 않도록
+    popupRef.current.on('close', () => { openStationRef.current = null })
   }, [mapReady, selectStation])
+
+  // --- 시간 슬라이더 변경 시 열린 팝업 갱신 ---
+  // 팝업은 HTML 문자열이라 클릭 시점 내용으로 동결된다.
+  // 갱신하지 않으면 슬라이더를 움직여도 위험도와 판단 요소가 그대로 남는다.
+  useEffect(() => {
+    const popup = popupRef.current
+    const stationId = openStationRef.current
+    if (!popup || !stationId || !popup.isOpen()) return
+    popup.setHTML(buildPopupHtml(stationId, displayScores, liveScoresRef.current))
+  }, [displayScores])
 
   const clearTracker = () => {
     setTrackerResult(null)
