@@ -1,0 +1,241 @@
+.app {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.app__map {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.map-view {
+  /* maplibre-gl.css sets its own `position` on this element (it stamps
+     `.maplibregl-map` onto the container at runtime) and loads after this
+     stylesheet, so anchor with explicit width/height rather than `inset`,
+     which would silently collapse to 0 height if `position` gets overridden. */
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------- control panel ---------- */
+
+.control-panel {
+  width: 320px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  background: #1a1a19;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  overflow-y: auto;
+  padding: 20px 18px;
+  gap: 20px;
+}
+
+.control-panel__header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.control-panel__header h1 {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.status-pill {
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  letter-spacing: 0.01em;
+}
+
+.status-pill--live {
+  background: rgba(12, 163, 12, 0.18);
+  color: #3ddc3d;
+}
+
+.status-pill--mock {
+  background: rgba(250, 178, 25, 0.18);
+  color: #fab219;
+}
+
+.control-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.control-section--grow {
+  flex: 1;
+  min-height: 0;
+}
+
+.control-section h2 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #898781;
+  margin: 0;
+}
+
+.segmented {
+  display: flex;
+  background: #0d0d0d;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.segmented__item {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: #c3c2b7;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.segmented__item--active {
+  background: #2a78d6;
+  color: #ffffff;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #c3c2b7;
+  background: #0d0d0d;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 7px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.chip input {
+  accent-color: #2a78d6;
+}
+
+.station-list {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-right: 2px;
+}
+
+.station-list__group h3 {
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 6px;
+}
+
+.station-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 6px;
+  color: #c3c2b7;
+  font-size: 12.5px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.station-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+}
+
+.station-row__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.station-row__id {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.station-row__score {
+  font-variant-numeric: tabular-nums;
+  color: #898781;
+}
+
+/* ---------- legend ---------- */
+
+.legend {
+  position: absolute;
+  left: 16px;
+  bottom: 24px;
+  background: rgba(26, 26, 25, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 12px 14px;
+  backdrop-filter: blur(6px);
+  color: #ffffff;
+}
+
+.legend__title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #c3c2b7;
+  margin-bottom: 8px;
+}
+
+.legend__items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.legend__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+
+.legend__item--muted {
+  color: #898781;
+}
+
+.legend__swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex: none;
+}
+
+/* ---------- maplibre overrides ---------- */
+
+.maplibregl-popup-content {
+  border-radius: 8px;
+}
