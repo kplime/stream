@@ -81,8 +81,15 @@ function buildPopupHtml(
 
   const timeStr = (() => {
     try {
-      const diff = Math.round((Date.now() - new Date(updatedAt).getTime()) / 60000)
-      return diff < 60 ? `${diff}분 전` : `${Math.round(diff / 60)}시간 전`
+      const dt = new Date(updatedAt)
+      if (isNaN(dt.getTime())) return ''
+      const diffMin = Math.round((Date.now() - dt.getTime()) / 60000)
+      if (diffMin < -1) {
+        // 미래 시간 → 예보
+        const h = Math.round(-diffMin / 60)
+        return h >= 1 ? `+${h}시간 후 예보` : `약 ${-diffMin}분 후 예보`
+      }
+      return diffMin < 60 ? `${diffMin}분 전` : `${Math.round(diffMin / 60)}시간 전`
     } catch { return '' }
   })()
 
