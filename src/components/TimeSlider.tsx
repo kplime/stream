@@ -40,7 +40,9 @@ export function TimeSlider() {
       {/* 상태 배지 */}
       <div className="time-slider-header">
         <div className={`time-slider-badge ${isLive ? 'time-slider-badge--live' : 'time-slider-badge--forecast'}`}>
-          {isLive ? '● 실시간' : `⏱ +${forecastHour}시간 후 예측`}
+          {/* '실시간'이 아니라 '현재' — 수질 실측은 월 단위라 데이터가 실시간이
+              아니고, 이 배지는 예보 시점이 아닌 '지금'을 가리키는 탭일 뿐이다. */}
+          {isLive ? '● 현재' : `⏱ +${forecastHour}시간 후 예측`}
         </div>
         {conditions && (
           <div className="time-slider-conditions">
@@ -55,7 +57,7 @@ export function TimeSlider() {
             className="time-slider-reset"
             onClick={() => setForecastHour(null)}
           >
-            실시간으로
+            현재로
           </button>
         )}
       </div>

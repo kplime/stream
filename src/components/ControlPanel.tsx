@@ -63,8 +63,22 @@ export function ControlPanel() {
   const selectStation = useMapStore((s) => s.selectStation)
 
   // 시간 슬라이더를 따라간다 — 지도는 예보인데 목록만 실시간이면 값이 어긋난다
-  const { displayScores: scores, isForecast, forecastHour } = useDisplayScores()
+  const { displayScores: scores, liveScores, isForecast, forecastHour } = useDisplayScores()
   const { data: weather } = useWeather()
+
+  // 파이프라인이 마지막으로 산출값을 올린 시각. 자동 스케줄러가 없어 수동
+  // 실행 시점에 멈춰 있으므로, "실시간"이라 뭉뚱그리지 않고 그대로 보여준다.
+  const lastRun = useMemo(() => {
+    const ts = (liveScores ?? [])
+      .map((s) => new Date(s.updated_at).getTime())
+      .filter((t) => !isNaN(t))
+    if (!ts.length) return null
+    const newest = Math.max(...ts)
+    const mins = Math.round((Date.now() - newest) / 60000)
+    if (mins < 60) return `${mins}분 전`
+    const hrs = Math.round(mins / 60)
+    return hrs < 24 ? `${hrs}시간 전` : `${Math.round(hrs / 24)}일 전`
+  }, [liveScores])
 
   // station_id 기준으로 A+B 묶기
   const stationsByRiver = useMemo(() => {
@@ -95,7 +109,9 @@ export function ControlPanel() {
         <header className="control-panel__header">
           <div>
             <h1>부산 도심하천 수질예보</h1>
-            <p className="control-panel__subtitle-text">온천천 · 동천 · 괴정천 실시간 위험도 예측</p>
+            {/* '실시간'이라 쓰지 않는다 — 수질 실측이 월 단위라 사실과 다르다.
+                무엇이 최신이고 아닌지는 아래 '데이터 기준' 섹션에서 밝힌다. */}
+            <p className="control-panel__subtitle-text">온천천 · 동천 · 괴정천 수질위험 예측</p>
           </div>
         </header>
 
@@ -132,6 +148,27 @@ export function ControlPanel() {
           )}
         </section>
       )}
+
+      {/* 데이터 기준 시점 — 무엇이 현재값이고 무엇이 아닌지 명시한다.
+          위험도는 '월 단위 수질 실측 + 현재 기상·조위'로 계산되므로,
+          전체를 실시간이라 부르면 사실과 다르다. */}
+      <section className="control-section">
+        <h2>데이터 기준</h2>
+        <dl className="data-provenance">
+          <div className="data-provenance__row">
+            <dt>수질 실측</dt>
+            <dd>2026-06 <span className="data-provenance__note">월 1회 측정</span></dd>
+          </div>
+          <div className="data-provenance__row">
+            <dt>기상 · 조위</dt>
+            <dd>현재값 <span className="data-provenance__note">시간 단위 갱신</span></dd>
+          </div>
+          <div className="data-provenance__row">
+            <dt>위험도 산출</dt>
+            <dd>{lastRun ?? '—'} <span className="data-provenance__note">수동 실행</span></dd>
+          </div>
+        </dl>
+      </section>
 
       <section className="control-section">
         <h2>예측 트랙 (팝업 기준)</h2>
