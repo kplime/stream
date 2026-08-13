@@ -1,9 +1,18 @@
 import { useMemo } from 'react'
-import { useRiskScores } from '../hooks/useRiskScores'
-import { useMapStore } from '../store/useMapStore'
-import { RIVER_NAMES, RISK_LEVEL_ORDER, TRACK_LABELS, type Track } from '../types/risk'
+import { ForecastPanel } from './ForecastPanel'
+import { useDisplayScores } from '../hooks/useDisplayScores'
+import { useWeather } from '../hooks/useWeather'
 import { RISK_COLORS } from '../lib/mapStyle'
 import { CandidatePledgeBanner } from './CandidatePledgeBanner'
+import { useMapStore } from '../store/useMapStore'
+import {
+  NO_REALTIME_SENSOR_RIVERS,
+  RIVER_NAMES,
+  RIVER_PRIMARY_TRACK,
+  TRACK_LABELS,
+  type RiskScore,
+  type Track,
+} from '../types/risk'
 
 const TRACKS: Track[] = ['A', 'B']
 
@@ -18,24 +27,28 @@ export function ControlPanel() {
   const selectStation = useMapStore((s) => s.selectStation)
   const userLocation = useMapStore((s) => s.userLocation)
 
-  const { data: scores, usingMock } = useRiskScores()
+  // 시간 슬라이더를 따라간다 — 지도는 예보인데 목록만 실시간이면 값이 어긋난다
+  const { displayScores: scores, usingMock, isForecast, forecastHour } = useDisplayScores()
+  const { data: weather } = useWeather()
 
   const handleLocateUser = () => {
     const loc = userLocation ?? { lng: 129.0835, lat: 35.2045, heading: 45 }
     flyTo({ lng: loc.lng, lat: loc.lat, zoom: 16.0 })
   }
 
-
+  // station_id 기준으로 A+B 묶기
   const stationsByRiver = useMemo(() => {
-    const filtered = (scores ?? []).filter((s) => s.track === track)
-    const grouped = new Map<string, typeof filtered>()
-    for (const river of RIVER_NAMES) grouped.set(river, [])
-    for (const s of filtered) grouped.get(s.river_name)?.push(s)
-    for (const list of grouped.values()) {
-      list.sort((a, b) => RISK_LEVEL_ORDER[b.risk_level] - RISK_LEVEL_ORDER[a.risk_level])
+    const grouped = new Map<string, Map<string, { A?: RiskScore; B?: RiskScore }>>()
+    for (const river of RIVER_NAMES) grouped.set(river, new Map())
+    for (const s of scores ?? []) {
+      const riverMap = grouped.get(s.river_name)
+      if (!riverMap) continue
+      const existing = riverMap.get(s.station_id) ?? {}
+      existing[s.track as 'A' | 'B'] = s
+      riverMap.set(s.station_id, existing)
     }
     return grouped
-  }, [scores, track])
+  }, [scores])
 
   return (
     <aside className="control-panel">
@@ -63,10 +76,42 @@ export function ControlPanel() {
         </div>
       </div>
 
-
+      {/* 강수량 위젯 */}
+      {weather && (
+        <section className="control-section">
+          <h2>현재 기상</h2>
+          <div className="weather-row">
+            <div className="weather-item">
+              <span className="weather-icon">🌧</span>
+              <span className="weather-value">{weather.precipitation_mm.toFixed(1)} mm/h</span>
+              <span className="weather-label">강수량</span>
+            </div>
+            <div className="weather-item">
+              <span className="weather-icon">🌡</span>
+              <span className="weather-value">{weather.temperature_c.toFixed(1)} °C</span>
+              <span className="weather-label">기온</span>
+            </div>
+            <div className="weather-item">
+              <span className={`weather-value ${weather.precipitation_mm > 5 ? 'weather-value--warn' : ''}`}>
+                {weather.precipitation_mm > 10
+                  ? '⚠ CSO 위험'
+                  : weather.precipitation_mm > 5
+                    ? '주의 관찰중'
+                    : '정상'}
+              </span>
+              <span className="weather-label">CSO 상태</span>
+            </div>
+          </div>
+          {weather.forecast_3h_mm > 0 && (
+            <p className="weather-forecast">
+              3시간 후 예보: {weather.forecast_3h_mm.toFixed(1)} mm
+            </p>
+          )}
+        </section>
+      )}
 
       <section className="control-section">
-        <h2>예측 트랙</h2>
+        <h2>예측 트랙 (팝업 기준)</h2>
         <div className="segmented">
           {TRACKS.map((t) => (
             <button
@@ -92,6 +137,14 @@ export function ControlPanel() {
                 onChange={() => toggleRiver(river)}
               />
               {river}
+              <span className="chip-track-badge">
+                {TRACK_LABELS[RIVER_PRIMARY_TRACK[river]]}
+              </span>
+              {NO_REALTIME_SENSOR_RIVERS.has(river) && (
+                <span className="chip-badge chip-badge--warn" title="부산 자동측정망 미설치 구간">
+                  센서없음
+                </span>
+              )}
             </label>
           ))}
         </div>
@@ -101,34 +154,67 @@ export function ControlPanel() {
         </label>
       </section>
 
+      <ForecastPanel />
+
       <section className="control-section control-section--grow">
-        <h2>측정소 목록 (클릭시 SHAP 원인분석)</h2>
+        <h2>
+          측정소 목록 (클릭시 SHAP 원인분석)
+          {isForecast && (
+            <span className="group-badge" style={{ marginLeft: 6 }}>
+              +{forecastHour}시간 후 예측
+            </span>
+          )}
+        </h2>
         <div className="station-list">
           {RIVER_NAMES.filter((r) => visibleRivers.has(r)).map((river) => (
             <div key={river} className="station-list__group">
-              <h3>{river}</h3>
-              {stationsByRiver.get(river)?.map((s) => (
-                <button
-                  key={s.station_id}
-                  type="button"
-                  className="station-row"
-                  onClick={() => {
-                    flyTo({ lng: s.lng, lat: s.lat, zoom: 15.5 })
-                    selectStation({ stationId: s.station_id, riverName: s.river_name, lng: s.lng, lat: s.lat })
-                  }}
-                >
-                  <span
-                    className="station-row__dot"
-                    style={{ background: RISK_COLORS[s.risk_level] }}
-                  />
-                  <span className="station-row__id">
-                    {s.station_id}
-                    {s.sensor_missing && <span className="badge-missing" title="자동측정망 미설치 (BOD 추정)">⚠️</span>}
-                    {s.anomaly_detected && <span className="badge-anomaly" title="Isolation Forest 이상 탐지">🚨</span>}
-                  </span>
-                  <span className="station-row__score">{Math.round(s.risk_score * 100)}%</span>
-                </button>
-              ))}
+              <h3>
+                {river}
+                <span className="group-track-label">
+                  {TRACK_LABELS[RIVER_PRIMARY_TRACK[river]]}
+                </span>
+                {NO_REALTIME_SENSOR_RIVERS.has(river) && (
+                  <span className="group-badge group-badge--warn">실시간센서없음</span>
+                )}
+              </h3>
+              {[...( stationsByRiver.get(river) ?? new Map<string, { A?: RiskScore; B?: RiskScore }>()).entries()].map(([stationId, both]) => {
+                const ref = both.A ?? both.B!
+                const colorA = RISK_COLORS[both.A?.risk_level ?? 'unknown']
+                const colorB = RISK_COLORS[both.B?.risk_level ?? 'unknown']
+                return (
+                  <button
+                    key={stationId}
+                    type="button"
+                    className="station-row station-row--dual"
+                    onClick={() => {
+                      flyTo({ lng: ref.lng, lat: ref.lat, zoom: 15.5 })
+                      selectStation({ stationId: ref.station_id, riverName: ref.river_name, lng: ref.lng, lat: ref.lat })
+                    }}
+                  >
+                    <span className="station-row__id">
+                      {stationId}
+                      {ref.sensor_missing && (
+                        <span className="badge-missing" title="자동측정망 미설치 (BOD 추정)">⚠️</span>
+                      )}
+                      {ref.anomaly_detected && (
+                        <span className="badge-anomaly" title="Isolation Forest 이상 탐지">🚨</span>
+                      )}
+                    </span>
+                    <span className="station-row__dual-scores">
+                      {both.A && (
+                        <span className="dual-badge dual-badge--a" style={{ background: colorA }}>
+                          A {Math.round(both.A.risk_score * 100)}%
+                        </span>
+                      )}
+                      {both.B && (
+                        <span className="dual-badge dual-badge--b" style={{ borderColor: colorB, color: colorB }}>
+                          B {Math.round(both.B.risk_score * 100)}%
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                )
+              })}
             </div>
           ))}
         </div>

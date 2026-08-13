@@ -4,7 +4,7 @@ import { ControlPanel } from './components/ControlPanel'
 import { Legend } from './components/Legend'
 import { MapView } from './components/MapView'
 import { ShapDiagnosisModal } from './components/ShapDiagnosisModal'
-import { ForecastTimeSlider } from './components/ForecastTimeSlider'
+import { TimeSlider } from './components/TimeSlider'
 
 function App() {
   // 데스크톱 Chrome/Edge는 Ctrl(⌘)+휠 스크롤을 "브라우저 페이지 확대/축소"로 가로챈다.
@@ -25,8 +25,8 @@ function App() {
       <ControlPanel />
       <main className="app__map">
         <MapView />
-        <ForecastTimeSlider />
         <Legend />
+        <TimeSlider />
         <ShapDiagnosisModal />
       </main>
     </div>

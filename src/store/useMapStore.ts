@@ -39,10 +39,11 @@ interface MapState {
   avatarModel: 'human' | 'robot' | 'fox'
   setAvatarModel: (model: 'human' | 'robot' | 'fox') => void
 
-  forecastHour: number
-  setForecastHour: (hour: number) => void
-  isForecastPlaying: boolean
-  toggleForecastPlaying: () => void
+  // 시간 슬라이더: null = 현재 실시간, 1~48 = 예측 시간
+  // TimeSlider(현행)가 쓰는 표현. 0을 실시간으로 쓰던 ForecastTimeSlider는
+  // 제거했으므로 null 표현으로 통일한다.
+  forecastHour: number | null
+  setForecastHour: (hour: number | null) => void
 }
 
 export const useMapStore = create<MapState>((set) => ({
@@ -82,9 +83,7 @@ export const useMapStore = create<MapState>((set) => ({
   avatarModel: 'human',
   setAvatarModel: (avatarModel) => set({ avatarModel }),
 
-  forecastHour: 0,
+  forecastHour: null,
   setForecastHour: (forecastHour) => set({ forecastHour }),
-  isForecastPlaying: false,
-  toggleForecastPlaying: () => set((state) => ({ isForecastPlaying: !state.isForecastPlaying })),
 }))
 

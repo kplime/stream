@@ -1,0 +1,11 @@
+feature,mean_shap
+TP,0.9481773
+EC,0.9307266
+수온,0.85254717
+SS,0.71472585
+pH,0.6509286
+temp_avg_c,0.54538643
+rain_lag1_mm,0.26053724
+rain_total_mm,0.2255292
+rain_lag1_max,0.20488213
+month,0.028728593

@@ -1,0 +1,9 @@
+requests>=2.32
+supabase>=2.0
+python-dotenv>=1.0
+xgboost>=2.0
+shap>=0.47
+scikit-learn>=1.5
+pandas>=2.0
+numpy>=1.26
+matplotlib>=3.8
