@@ -45,8 +45,13 @@ export function useRiskScores() {
     if (!isSupabaseConfigured || !supabase) return
     const client = supabase
 
+    // Unique topic name per mount: StrictMode double-invokes this effect in
+    // dev (mount -> cleanup -> mount), and supabase-js's `.channel(name)`
+    // returns the *same* channel object for a repeated name — the second
+    // mount would call `.on()` on a channel that's already `.subscribe()`d
+    // and throw. A fresh name per mount sidesteps the reuse entirely.
     const channel = client
-      .channel('risk_scores-changes')
+      .channel(`risk_scores-changes-${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'risk_scores' },
