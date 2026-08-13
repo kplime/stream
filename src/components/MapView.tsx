@@ -60,18 +60,25 @@ function buildShapHtml(shapRaw: string | null | undefined, track: 'A' | 'B'): st
 }
 
 // 팝업 HTML 전체 생성
+// liveScores: 실시간 scores — 예보 모드에서 SHAP 값 보완용 (forecast엔 SHAP 없음)
 function buildPopupHtml(
   props: Record<string, unknown>,
   allScores: RiskScore[],
+  liveScores?: RiskScore[],
 ): string {
   const stationId = String(props.station_id ?? '')
   const riverName = String(props.river_name ?? '')
   const updatedAt = String(props.updated_at ?? '')
 
-  // 같은 station_id의 모든 트랙 데이터
+  // 현재 표시 중인 위험도 (forecast or live)
   const stationScores = allScores.filter((s) => s.station_id === stationId)
   const scoreA = stationScores.find((s) => s.track === 'A')
   const scoreB = stationScores.find((s) => s.track === 'B')
+
+  // SHAP은 실시간 scores에서 조회 (forecast에 없는 경우 fallback)
+  const shapSource = (liveScores ?? allScores).filter((s) => s.station_id === stationId)
+  const liveA = shapSource.find((s) => s.track === 'A')
+  const liveB = shapSource.find((s) => s.track === 'B')
 
   const riskBadge = (level: string, pct: number) => {
     const colors: Record<string, string> = { high: '#d03b3b', medium: '#fab219', low: '#0ca30c' }
@@ -94,13 +101,14 @@ function buildPopupHtml(
   })()
 
   // Supabase JSONB → string 또는 object 어느 쪽으로도 올 수 있어 양쪽 처리
-  const toShapStr = (s: typeof scoreA) => {
+  const toShapStr = (s: RiskScore | undefined) => {
     if (!s?.shap) return null
     if (typeof s.shap === 'string') return s.shap   // 이미 JSON 문자열
     return JSON.stringify(s.shap)                   // 객체면 직렬화
   }
-  const shapA = toShapStr(scoreA)
-  const shapB = toShapStr(scoreB)
+  // SHAP: 실시간 scores 우선, 없으면 forecast scores에서 시도
+  const shapA = toShapStr(liveA) ?? toShapStr(scoreA)
+  const shapB = toShapStr(liveB) ?? toShapStr(scoreB)
 
   return `<div style="font-family:system-ui,sans-serif;font-size:13px;line-height:1.5;color:#1a1a1a;min-width:220px;max-width:280px">
     <div style="font-weight:700;font-size:14px;margin-bottom:6px">${stationId}</div>
@@ -127,7 +135,8 @@ export function MapView() {
   const mapRef = useRef<maplibregl.Map | null>(null)
   const popupRef = useRef<maplibregl.Popup | null>(null)
   const buildingLayerIdRef = useRef<string>(NATIVE_BUILDINGS_3D_LAYER_ID)
-  const scoresRef = useRef<RiskScore[]>([])   // 최신 scores 참조 (클릭 핸들러용)
+  const scoresRef = useRef<RiskScore[]>([])      // 표시 scores (forecast or live)
+  const liveScoresRef = useRef<RiskScore[]>([])  // 항상 실시간 scores (SHAP 조회용)
   const [mapReady, setMapReady] = useState(false)
   const [hasFitBounds, setHasFitBounds] = useState(false)
 
@@ -175,6 +184,8 @@ export function MapView() {
 
   // scoresRef: 클릭 핸들러에서 항상 최신 데이터 참조
   useEffect(() => { scoresRef.current = displayScores }, [displayScores])
+  // liveScoresRef: 예보 모드에서도 SHAP 조회를 위해 실시간 scores 유지
+  useEffect(() => { liveScoresRef.current = scores ?? [] }, [scores])
 
   const lineScores = useMemo(
     () => displayScores.filter((s) => RIVER_PRIMARY_TRACK[s.river_name as RiverName] === s.track),
@@ -457,7 +468,7 @@ export function MapView() {
       maxWidth: '300px',
     })
       .setLngLat([s.lng, s.lat])
-      .setHTML(buildPopupHtml(props, allScores))
+      .setHTML(buildPopupHtml(props, allScores, liveScoresRef.current))
       .addTo(map)
   }, [mapReady, selectStation])
 
