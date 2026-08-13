@@ -12,6 +12,12 @@ export const STATION_SOURCE_A_ID = 'risk-station-points-a'
 export const STATION_SOURCE_B_ID = 'risk-station-points-b'
 export const STATION_SOURCE_ID = STATION_SOURCE_A_ID
 
+// 오염원 역추적 레이어
+export const TRACKER_SOURCE_ID = 'tracker-upstream'
+export const TRACKER_LINE_LAYER_ID = 'tracker-upstream-line'
+export const TRACKER_POINT_SOURCE_ID = 'tracker-source-point'
+export const TRACKER_POINT_LAYER_ID = 'tracker-source-point-layer'
+
 export const INITIAL_VIEW = {
   center: [129.055, 35.17] as [number, number],
   zoom: 11.5,

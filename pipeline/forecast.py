@@ -211,6 +211,47 @@ def load_model(track: str):
     raise FileNotFoundError(f"모델 없음: track {track}")
 
 
+def adjust_base_with_weather(base: dict, rain_24h: float, temp_c: float) -> dict:
+    """
+    기상 예보 기반 수질 기준값 물리적 보정.
+
+    과학적 근거:
+    - SS(탁도): 강수 시 CSO·비점오염 유입으로 증가 (Novotny & Olem, 1994)
+    - DO: 수온 상승 → 포화 용존산소 감소 (Henry's Law / Benson-Krause)
+           강수 시 BOD 유입으로 추가 저하
+    - 수온: 기상 기온과 평형 방향으로 서서히 접근 (열 지연 반영)
+    """
+    m = dict(base)
+
+    # 수온: 기온의 30% 반영 (열 지연)
+    wt = base.get("수온", np.nan)
+    if not np.isnan(wt):
+        wt_est = wt * 0.7 + temp_c * 0.3
+        m["수온"] = round(wt_est, 2)
+    else:
+        wt_est = temp_c * 0.85  # 수온 ≈ 기온의 85%
+
+    # DO: 온도 포화도 공식 (Benson-Krause 근사) + 강수 BOD 유입
+    do_base = base.get("DO", np.nan)
+    if not np.isnan(do_base):
+        do_sat = 14.62 - 0.3898 * wt_est + 0.006969 * wt_est ** 2  # mg/L
+        # 강수 시 BOD 유입으로 DO 추가 저하 (20mm/24h당 약 15% 저하)
+        rain_stress = min(rain_24h / 20.0 * 0.15, 0.40)
+        m["DO"] = round(max(1.0, min(do_base, do_sat * 0.95) * (1.0 - rain_stress)), 2)
+
+    # SS(탁도): 24h 강수당 증가 (15mm마다 1배, 최대 3배)
+    ss_base = base.get("SS", np.nan)
+    if not np.isnan(ss_base):
+        ss_factor = 1.0 + rain_24h / 15.0
+        m["SS"] = round(ss_base * min(ss_factor, 3.0), 2)
+
+    return m
+
+
+# 당월 강수량 기준 (보정 전 기본값, 8월 부산 평균)
+MONTHLY_RAIN_BASELINE = 150.0
+
+
 def build_feature_row(
     base: dict,
     rain_now_mm: float,
@@ -263,7 +304,6 @@ def predict_forecast(
         feat_names = pkg["features"]
         model = pkg["model"]
 
-        # 누적 강수량 (당일 자정 리셋)
         cumulative_rain = 0.0
         prev_date = None
 
@@ -273,19 +313,35 @@ def predict_forecast(
             dt_utc: pd.Timestamp = wx_row["dt"]
             dt_kst = dt_utc.tz_convert("Asia/Seoul")
 
-            # 날짜 바뀌면 누적 초기화
+            # 날짜 바뀌면 당일 누적 초기화
             if prev_date and dt_kst.date() != prev_date:
                 cumulative_rain = 0.0
             prev_date = dt_kst.date()
             cumulative_rain += float(wx_row["rain_mm"] or 0)
 
+            # 24h 슬라이딩 윈도우 강수 (수질 보정용)
+            rain_24h = merged.iloc[max(0, i - 23): i + 1]["rain_mm"].fillna(0).sum()
+
+            # 조위: 24h 롤링 평균 → 월 평균 조위 프록시 (모델이 월 평균으로 훈련됨)
+            tide_24h_mean = merged.iloc[max(0, i - 23): i + 1]["tide_cm"].mean()
+            tide_for_model = tide_24h_mean if not np.isnan(tide_24h_mean) else float(wx_row["tide_cm"])
+
+            # 월 강수량 = 기준값 + 24h 누적 강수 × 월 스케일 증폭 (3배)
+            # 24h 20mm → 당월 총량 +60mm 증가로 해석
+            rain_monthly = MONTHLY_RAIN_BASELINE + rain_24h * 3.0
+
+            temp_c_now = float(wx_row["temp_c"] or 25.0)
+
+            # 기상 기반 수질 보정 (SS↑, DO↓ when rain; DO↓ when warm)
+            adjusted_base = adjust_base_with_weather(base, rain_24h=float(rain_24h), temp_c=temp_c_now)
+
             feat = build_feature_row(
-                base=base,
-                rain_now_mm=cumulative_rain,
+                base=adjusted_base,
+                rain_now_mm=rain_monthly,
                 rain_lag1_mm=rain_lag1,
                 rain_lag1_max=rain_lag1_max,
-                temp_c=float(wx_row["temp_c"] or 25.0),
-                tide_cm=float(wx_row["tide_cm"]),
+                temp_c=temp_c_now,
+                tide_cm=tide_for_model,
                 river=river,
                 month=dt_kst.month,
             )

@@ -45,8 +45,10 @@ export function useRiskScores() {
     if (!isSupabaseConfigured || !supabase) return
     const client = supabase
 
+    // 채널명에 고유 ID 추가 — React StrictMode 이중 실행 시 이름 충돌 방지
+    const channelName = `risk_scores-changes-${Math.random().toString(36).slice(2)}`
     const channel = client
-      .channel('risk_scores-changes')
+      .channel(channelName)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'risk_scores' },

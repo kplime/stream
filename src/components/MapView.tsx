@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { STATION_COORDS_FALLBACK, useForecast } from '../hooks/useForecast'
 import { useRiskScores } from '../hooks/useRiskScores'
 import { useRiverGeometry } from '../hooks/useRiverGeometry'
+import { useWeather } from '../hooks/useWeather'
 import {
   FALLBACK_BUILDINGS_3D_LAYER_ID,
   INITIAL_VIEW,
@@ -20,7 +21,12 @@ import {
   STATION_LAYER_B_ID,
   STATION_SOURCE_A_ID,
   STATION_SOURCE_B_ID,
+  TRACKER_LINE_LAYER_ID,
+  TRACKER_POINT_LAYER_ID,
+  TRACKER_POINT_SOURCE_ID,
+  TRACKER_SOURCE_ID,
 } from '../lib/mapStyle'
+import { traceUpstream, type TrackerResult } from '../lib/pollutionTracker'
 import { buildRiskSegments } from '../lib/riverSegments'
 import { useMapStore } from '../store/useMapStore'
 import { RIVER_NAMES, RIVER_PRIMARY_TRACK, TRACK_LABELS, type RiverName, type RiskLevel, type RiskScore, type Track } from '../types/risk'
@@ -110,6 +116,21 @@ function buildPopupHtml(
   const shapA = toShapStr(liveA) ?? toShapStr(scoreA)
   const shapB = toShapStr(liveB) ?? toShapStr(scoreB)
 
+  // 오염원 역추적 버튼 (medium 이상 위험도일 때 표시)
+  const maxRiskLevel = scoreA?.risk_level === 'high' || scoreB?.risk_level === 'high'
+    ? 'high'
+    : scoreA?.risk_level === 'medium' || scoreB?.risk_level === 'medium'
+      ? 'medium'
+      : 'low'
+  const showTrackerBtn = maxRiskLevel !== 'low'
+  const trackerBtn = showTrackerBtn
+    ? `<button
+        onclick="window.__tracePollution('${stationId}', '${riverName}')"
+        style="margin-top:10px;width:100%;padding:5px 10px;background:#1d4ed8;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">
+        🔍 오염원 역추적
+      </button>`
+    : ''
+
   return `<div style="font-family:system-ui,sans-serif;font-size:13px;line-height:1.5;color:#1a1a1a;min-width:220px;max-width:280px">
     <div style="font-weight:700;font-size:14px;margin-bottom:6px">${stationId}</div>
     <div style="color:#666;font-size:11px;margin-bottom:8px">${riverName} · ${timeStr}</div>
@@ -127,6 +148,7 @@ function buildPopupHtml(
 
     ${buildShapHtml(shapA, 'A')}
     ${buildShapHtml(shapB, 'B')}
+    ${trackerBtn}
   </div>`
 }
 
@@ -137,8 +159,11 @@ export function MapView() {
   const buildingLayerIdRef = useRef<string>(NATIVE_BUILDINGS_3D_LAYER_ID)
   const scoresRef = useRef<RiskScore[]>([])      // 표시 scores (forecast or live)
   const liveScoresRef = useRef<RiskScore[]>([])  // 항상 실시간 scores (SHAP 조회용)
+  const weatherRef = useRef<number>(0)           // 현재 강수량 (역추적 유속 계산용)
   const [mapReady, setMapReady] = useState(false)
   const [hasFitBounds, setHasFitBounds] = useState(false)
+  const [trackerResult, setTrackerResult] = useState<TrackerResult | null>(null)
+  const [activeTrackerZone, setActiveTrackerZone] = useState<number>(1) // 선택된 역추적 시간(h)
 
   const visibleRivers = useMapStore((s) => s.visibleRivers)
   const show3dBuildings = useMapStore((s) => s.show3dBuildings)
@@ -150,6 +175,7 @@ export function MapView() {
   const { data: riverGeometry } = useRiverGeometry()
   const { data: scores } = useRiskScores()
   const { data: forecast } = useForecast()
+  const { data: weather } = useWeather()
 
   // 측정소 lat/lng 조회용 맵 (forecast에는 좌표 없음)
   const stationCoords = useMemo(() => {
@@ -186,6 +212,8 @@ export function MapView() {
   useEffect(() => { scoresRef.current = displayScores }, [displayScores])
   // liveScoresRef: 예보 모드에서도 SHAP 조회를 위해 실시간 scores 유지
   useEffect(() => { liveScoresRef.current = scores ?? [] }, [scores])
+  // weatherRef: 역추적 유속 계산용
+  useEffect(() => { weatherRef.current = weather?.precipitation_mm ?? 0 }, [weather])
 
   const lineScores = useMemo(
     () => displayScores.filter((s) => RIVER_PRIMARY_TRACK[s.river_name as RiverName] === s.track),
@@ -293,6 +321,34 @@ export function MapView() {
       map.addSource(STATION_SOURCE_A_ID, { type: 'geojson', data: EMPTY_FC })
       map.addSource(STATION_SOURCE_B_ID, { type: 'geojson', data: EMPTY_FC })
 
+      // 오염원 역추적 레이어
+      map.addSource(TRACKER_SOURCE_ID, { type: 'geojson', data: EMPTY_FC })
+      map.addSource(TRACKER_POINT_SOURCE_ID, { type: 'geojson', data: EMPTY_FC })
+      map.addLayer({
+        id: TRACKER_LINE_LAYER_ID,
+        type: 'line',
+        source: TRACKER_SOURCE_ID,
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': '#f97316',
+          'line-width': 5,
+          'line-opacity': 0.85,
+          'line-dasharray': [2, 2],
+        },
+      })
+      map.addLayer({
+        id: TRACKER_POINT_LAYER_ID,
+        type: 'circle',
+        source: TRACKER_POINT_SOURCE_ID,
+        paint: {
+          'circle-radius': 10,
+          'circle-color': '#f97316',
+          'circle-stroke-color': '#fff',
+          'circle-stroke-width': 2.5,
+          'circle-opacity': 0.9,
+        },
+      })
+
       // 하천선
       map.addLayer({
         id: RIVER_GLOW_LAYER_ID,
@@ -353,6 +409,30 @@ export function MapView() {
       // 클릭은 React div onClick으로 처리 (아래 handleMapClick)
 
       setMapReady(true)
+
+      // 팝업 버튼 → 역추적 핸들러 (popup은 HTML 문자열이라 전역 함수로 연결)
+      ;(window as unknown as Record<string, unknown>)['__tracePollution'] = (
+        stationId: string,
+        riverName: string,
+      ) => {
+        const rain = weatherRef.current
+        const result = traceUpstream(stationId, riverName as RiverName, rain)
+        if (!result) return
+        setTrackerResult(result)
+        setActiveTrackerZone(1)
+
+        // 지도 레이어 업데이트 (첫 번째 존 — 1h 역추적)
+        const zone = result.zones[0]
+        if (!zone) return
+        const trackerSrc = map.getSource(TRACKER_SOURCE_ID) as maplibregl.GeoJSONSource | undefined
+        const trackerPtSrc = map.getSource(TRACKER_POINT_SOURCE_ID) as maplibregl.GeoJSONSource | undefined
+        trackerSrc?.setData(
+          turf.featureCollection([turf.lineString(zone.segmentCoords)])
+        )
+        trackerPtSrc?.setData(
+          turf.featureCollection([turf.point(zone.sourcePoint, { label: zone.label })])
+        )
+      }
     })
 
     return () => {
@@ -384,6 +464,18 @@ export function MapView() {
       setHasFitBounds(true)
     }
   }, [mapReady, riverSegments, stationFeaturesA, stationFeaturesB, hasFitBounds])
+
+  // --- 오염원 역추적 존 전환 시 지도 업데이트 ---
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady || !trackerResult) return
+    const zone = trackerResult.zones.find((z) => z.lookbackHours === activeTrackerZone) ?? trackerResult.zones[0]
+    if (!zone) return
+    const trackerSrc = map.getSource(TRACKER_SOURCE_ID) as maplibregl.GeoJSONSource | undefined
+    const trackerPtSrc = map.getSource(TRACKER_POINT_SOURCE_ID) as maplibregl.GeoJSONSource | undefined
+    trackerSrc?.setData(turf.featureCollection([turf.lineString(zone.segmentCoords)]))
+    trackerPtSrc?.setData(turf.featureCollection([turf.point(zone.sourcePoint, { label: zone.label })]))
+  }, [mapReady, trackerResult, activeTrackerZone])
 
   // --- 하천 가시성 필터 ---
   useEffect(() => {
@@ -472,5 +564,124 @@ export function MapView() {
       .addTo(map)
   }, [mapReady, selectStation])
 
-  return <div ref={containerRef} className="map-view" onClick={handleMapClick} />
+  const clearTracker = () => {
+    setTrackerResult(null)
+    const map = mapRef.current
+    if (!map) return
+    const trackerSrc = map.getSource(TRACKER_SOURCE_ID) as maplibregl.GeoJSONSource | undefined
+    const trackerPtSrc = map.getSource(TRACKER_POINT_SOURCE_ID) as maplibregl.GeoJSONSource | undefined
+    trackerSrc?.setData(EMPTY_FC)
+    trackerPtSrc?.setData(EMPTY_FC)
+  }
+
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <div ref={containerRef} className="map-view" onClick={handleMapClick} />
+
+      {/* 역추적 결과 오버레이 패널 */}
+      {trackerResult && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '2rem',
+            right: '1rem',
+            background: 'rgba(15,23,42,0.92)',
+            backdropFilter: 'blur(8px)',
+            borderRadius: '12px',
+            padding: '14px 16px',
+            color: '#f1f5f9',
+            fontFamily: 'system-ui, sans-serif',
+            fontSize: '13px',
+            width: '260px',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+            border: '1px solid rgba(249,115,22,0.4)',
+            zIndex: 10,
+          }}
+        >
+          {/* 헤더 */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <span style={{ fontWeight: 700, fontSize: '14px', color: '#f97316' }}>
+              🔍 오염원 역추적
+            </span>
+            <button
+              type="button"
+              onClick={clearTracker}
+              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '16px', padding: 0 }}
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* 측정소·유속 정보 */}
+          <div style={{ marginBottom: '10px', color: '#94a3b8', fontSize: '12px' }}>
+            <div><span style={{ color: '#cbd5e1' }}>측정소:</span> {trackerResult.stationId}</div>
+            <div style={{ marginTop: '3px' }}>
+              <span style={{ color: '#cbd5e1' }}>추정 유속:</span>{' '}
+              <span style={{ color: '#f97316', fontWeight: 600 }}>
+                {trackerResult.velocityMs.toFixed(2)} m/s
+              </span>
+              <span style={{ marginLeft: '6px', color: '#64748b' }}>
+                (강수 {trackerResult.rain_mm_per_hr.toFixed(1)} mm/h · Manning 추정)
+              </span>
+            </div>
+          </div>
+
+          {/* 역추적 시간 선택 */}
+          <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
+            {trackerResult.zones.map((z) => (
+              <button
+                key={z.lookbackHours}
+                type="button"
+                onClick={() => setActiveTrackerZone(z.lookbackHours)}
+                style={{
+                  flex: 1,
+                  padding: '4px 0',
+                  borderRadius: '6px',
+                  border: `1.5px solid ${activeTrackerZone === z.lookbackHours ? '#f97316' : '#334155'}`,
+                  background: activeTrackerZone === z.lookbackHours ? 'rgba(249,115,22,0.18)' : 'transparent',
+                  color: activeTrackerZone === z.lookbackHours ? '#f97316' : '#94a3b8',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  fontWeight: activeTrackerZone === z.lookbackHours ? 700 : 400,
+                }}
+              >
+                -{z.lookbackHours}h
+              </button>
+            ))}
+          </div>
+
+          {/* 선택된 존 정보 */}
+          {(() => {
+            const zone = trackerResult.zones.find((z) => z.lookbackHours === activeTrackerZone) ?? trackerResult.zones[0]
+            if (!zone) return null
+            const distM = Math.round(zone.distanceKm * 1000)
+            const distStr = distM >= 1000 ? `${zone.distanceKm.toFixed(1)}km` : `${distM}m`
+            const [lng, lat] = zone.sourcePoint
+            return (
+              <div style={{ background: 'rgba(249,115,22,0.1)', borderRadius: '8px', padding: '10px', border: '1px solid rgba(249,115,22,0.25)' }}>
+                <div style={{ fontWeight: 700, marginBottom: '6px', color: '#fed7aa' }}>
+                  {activeTrackerZone}시간 전 추정 유입 지점
+                </div>
+                <div style={{ color: '#94a3b8', fontSize: '12px', lineHeight: 1.7 }}>
+                  <div>이동거리: <span style={{ color: '#f1f5f9' }}>{distStr} 상류</span></div>
+                  <div>좌표: <span style={{ color: '#f1f5f9' }}>{lat.toFixed(4)}°N, {lng.toFixed(4)}°E</span></div>
+                  {zone.clamped && (
+                    <div style={{ marginTop: '4px', color: '#fbbf24', fontSize: '11px' }}>
+                      ⚠ 측정망 상류 한계 — 실제 오염원은 더 상류일 수 있음
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* 면책 고지 */}
+          <div style={{ marginTop: '10px', fontSize: '10px', color: '#475569', lineHeight: 1.5 }}>
+            ※ Manning 방정식 기반 유속 추정, 실제 유속 센서 미설치<br/>
+            오염원 위치 ±20~40% 오차 예상 (참고용)
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
