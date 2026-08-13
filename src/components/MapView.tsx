@@ -634,24 +634,9 @@ export function MapView() {
 
       {/* 역추적 결과 오버레이 패널 */}
       {trackerResult && (
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '2rem',
-            right: '1rem',
-            background: 'rgba(15,23,42,0.92)',
-            backdropFilter: 'blur(8px)',
-            borderRadius: '12px',
-            padding: '14px 16px',
-            color: '#f1f5f9',
-            fontFamily: 'system-ui, sans-serif',
-            fontSize: '13px',
-            width: '260px',
-            boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
-            border: '1px solid rgba(249,115,22,0.4)',
-            zIndex: 10,
-          }}
-        >
+        // 위치·크기는 CSS로 뺐다. 인라인 스타일은 미디어쿼리로 덮을 수 없어
+        // 좁은 화면에서 시간 슬라이더와 겹쳐도 손댈 방법이 없었다.
+        <div className="tracker-panel">
           {/* 헤더 */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
             <span style={{ fontWeight: 700, fontSize: '14px', color: '#f97316' }}>

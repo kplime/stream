@@ -108,21 +108,11 @@
   padding: 0 2px;
 }
 
-/* 모바일 바텀시트 펼침/접힘 토글 — 데스크톱에서는 사이드바가 항상 완전히
-   보이는 고정 카드라 필요 없으므로 기본은 숨김, 아래 모바일 미디어쿼리에서만
-   보이게 한다. */
-.control-panel-toggle {
+/* 모바일 드로어 손잡이 — 데스크톱에서는 사이드바가 항상 완전히 보이는
+   고정 카드라 필요 없으므로 기본은 숨김, 아래 모바일 미디어쿼리에서만
+   보이게 한다. (자세한 배치는 그쪽 블록에 있다) */
+.control-panel-handle {
   display: none;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  background: var(--surface-2);
-  border: none;
-  border-radius: 999px;
-  color: var(--text-secondary);
-  cursor: pointer;
 }
 
 .control-panel__header h1 {
@@ -1843,36 +1833,133 @@
 
 /* ---------- Digital Twin 48-Hour Forecast Time Slider Card ---------- */
 
-@media (max-width: 768px) {
-  /* 사이드바가 지도의 80%를 가리던 걸, 기본은 헤더만 보이는 얇은 바텀시트로
-     접어두고 토글 버튼으로 펼치는 방식으로 바꾼다. */
+/* ============================================================
+   반응형
+   ============================================================ */
+
+/* 역추적 패널 — 위치·크기는 여기서 잡는다 (인라인 스타일이면 미디어쿼리로
+   덮을 수 없어 좁은 화면에서 시간 슬라이더와 겹쳐도 손댈 수가 없다). */
+.tracker-panel {
+  position: absolute;
+  bottom: 2rem;
+  right: 1rem;
+  width: 260px;
+  z-index: 920;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(249, 115, 22, 0.4);
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  padding: 14px 16px;
+  color: #f1f5f9;
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+}
+
+/* ---------- 태블릿 (<=1024px) ----------
+   사이드바는 그대로 두되, 사이드바 폭을 기준으로 밀어둔 요소들의
+   여유가 부족해지므로 살짝 좁힌다. */
+@media (max-width: 1024px) and (min-width: 769px) {
   .control-panel {
-    top: auto;
-    left: 8px;
-    right: 8px;
-    bottom: 8px;
-    width: auto;
-    max-height: 96px;
-    padding: 16px;
-    gap: 18px;
-    overflow: hidden;
-    transition: max-height 0.28s ease;
+    width: 264px;
   }
 
-  .control-panel.control-panel--expanded {
-    max-height: 78vh;
-    overflow-y: auto;
-  }
-
-  .control-panel-toggle {
-    display: inline-flex;
-  }
-
-  /* 범례는 접힌 바텀시트와 안 겹치게 위로 옮긴다. */
   .legend {
-    top: 8px;
-    left: 8px;
+    left: 296px;
+  }
+
+  .time-slider-wrap {
+    left: calc(50% + 148px);
+    width: calc(100% - 380px);
+  }
+}
+
+/* ---------- 모바일 (<=768px) ----------
+   사이드바를 왼쪽에서 밀어 넣고 빼는 드로어로 바꾼다.
+   닫으면 지도만, 열면 보드만 보는 식으로 화면을 온전히 쓰게 하는 게 목적. */
+@media (max-width: 768px) {
+  :root {
+    /* 드로어 폭 — 핸들 위치 계산과 반드시 같은 값을 써야 해서 변수로 뺀다. */
+    --drawer-w: min(86vw, 330px);
+  }
+
+  .control-panel {
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: auto;
+    width: var(--drawer-w);
+    max-height: none;
+    border-radius: 0 var(--radius-widget) var(--radius-widget) 0;
+    /* 닫힘: 화면 밖으로 완전히 뺀다 */
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom))
+      calc(16px + env(safe-area-inset-left));
+    gap: 20px;
+    z-index: 1000;
+  }
+
+  .control-panel.control-panel--open {
+    transform: translateX(0);
+  }
+
+  /* 손잡이 — 드로어 오른쪽 모서리에 붙어 같이 움직인다.
+     세로 막대 형태라 엄지로 잡기 쉽고, 44px 이상이라 터치 타깃 기준도 만족한다. */
+  .control-panel-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 30px;
+    height: 68px;
+    padding: 0;
+    border: 0.5px solid rgba(0, 0, 0, 0.08);
+    border-left: none;
+    border-radius: 0 12px 12px 0;
+    background: rgba(246, 246, 248, 0.75);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    color: rgba(0, 0, 0, 0.75);
+    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.14);
+    cursor: pointer;
+    z-index: 1001;
+    transform: translate(0, -50%);
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    /* iOS에서 탭 시 회색 박스가 번쩍이는 것 방지 */
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  .control-panel-handle--open {
+    transform: translate(var(--drawer-w), -50%);
+  }
+
+  .control-panel-handle:active {
+    background: rgba(236, 236, 240, 0.9);
+  }
+
+  /* 헤더는 드로어 안에서만 보이므로 토글 버튼 자리는 필요 없다 */
+  .control-panel__header {
+    padding-right: 34px;
+  }
+
+  .control-panel h1 {
+    font-size: 17px;
+  }
+
+  /* 범례는 상단으로 — 드로어가 닫혔을 때 지도 위 왼쪽은 핸들이 쓴다 */
+  .legend {
+    top: calc(8px + env(safe-area-inset-top));
+    left: 44px;
+    right: 8px;
     bottom: auto;
+    padding: 8px 10px;
   }
 
   .legend__items {
@@ -1880,24 +1967,121 @@
     row-gap: 6px;
   }
 
-  /* 시간 슬라이더는 접힌 바텀시트 바로 위에 뜨게 하고(펼쳐지면 시트가 위를
-     덮으며 자연스럽게 가려짐), 폭은 좌우 여백만 남기고 꽉 채운다.
-     데스크톱에서는 사이드바를 피해 오른쪽으로 밀어둔 상태이므로, 모바일에서는
-     left/transform/width를 모두 되돌려야 한다. */
+  /* 시간 슬라이더는 화면 하단 전체 폭. 드로어가 위를 덮으므로 별도 회피 불필요. */
   .time-slider-wrap {
     left: 8px;
     right: 8px;
-    bottom: 112px;
+    bottom: calc(8px + env(safe-area-inset-bottom));
     width: auto;
     max-width: none;
     min-width: 0;
     transform: none;
     padding: 12px 14px;
+    gap: 10px;
   }
 
-  /* 슬라이더 눈금이 좁은 폭에서 서로 겹치는 걸 줄인다. */
   .time-slider-tick {
     font-size: 9px;
+  }
+
+  /* 역추적 패널도 하단 전체 폭으로 눕히고, 슬라이더 위에 쌓는다 */
+  .tracker-panel {
+    left: 8px;
+    right: 8px;
+    width: auto;
+    bottom: calc(150px + env(safe-area-inset-bottom));
+    max-height: 42vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* 지도 팝업이 좁은 화면을 넘지 않게 */
+  .maplibregl-popup-content {
+    max-width: calc(100vw - 32px);
+  }
+
+  /* 기본 컨트롤이 손가락에 맞도록 최소 높이 확보 */
+  .segmented__item,
+  .station-row,
+  .locate-me-btn,
+  .time-slider-reset {
+    min-height: 40px;
+  }
+}
+
+/* ---------- 소형 폰 (<=380px) ---------- */
+@media (max-width: 380px) {
+  :root {
+    --drawer-w: 92vw;
+  }
+
+  .time-slider-conditions {
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+
+  /* 눈금 라벨이 서로 겹치므로 양 끝과 중간만 남긴다 */
+  .time-slider-tick {
+    font-size: 8px;
+  }
+
+  .legend {
+    font-size: 10px;
+  }
+}
+
+/* ---------- 가로 모드 (낮은 높이) ----------
+   세로 공간이 부족하면 드로어를 전체 높이로 쓰고 하단 위젯을 납작하게. */
+@media (max-height: 480px) and (orientation: landscape) {
+  .control-panel {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    gap: 14px;
+  }
+
+  .time-slider-wrap {
+    bottom: 6px;
+    padding: 8px 12px;
+    gap: 6px;
+  }
+
+  .time-slider-track-wrap {
+    padding-bottom: 16px;
+  }
+
+  .tracker-panel {
+    max-height: 60vh;
+    bottom: 6px;
+    /* 가로 모드에서는 폭이 넉넉하니 오른쪽 고정으로 되돌린다 */
+    left: auto;
+    right: 8px;
+    width: 300px;
+  }
+
+  .legend {
+    display: none;
+  }
+}
+
+/* ---------- 모션 최소화 선호 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .control-panel,
+  .control-panel-handle {
+    transition: none;
+  }
+}
+
+/* ---------- 포인터가 거친 입력(터치) ----------
+   화면 폭과 무관하게 터치 기기면 타깃을 키운다. */
+@media (pointer: coarse) {
+  .time-slider-input::-webkit-slider-thumb {
+    width: 22px;
+    height: 22px;
+  }
+
+  .forecast-hour-btn,
+  .forecast-cell {
+    min-height: 36px;
   }
 }
 

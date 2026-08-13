@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { AlertTriangle, ChevronDown, ChevronUp, MapPin, Siren } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { AlertTriangle, ChevronLeft, ChevronRight, MapPin, Siren } from 'lucide-react'
 import { ForecastPanel } from './ForecastPanel'
 import { useDisplayScores } from '../hooks/useDisplayScores'
 import { useWeather } from '../hooks/useWeather'
@@ -17,8 +17,34 @@ import {
 const TRACKS: Track[] = ['A', 'B']
 
 export function ControlPanel() {
-  // 모바일에서만 쓰는 바텀시트 펼침 상태 (데스크톱은 CSS에서 토글 버튼 자체를 숨김).
+  // 모바일 사이드 드로어 열림 상태 (데스크톱은 CSS가 항상 펼친 상태로 둔다).
+  // 처음에는 닫아 두어 좁은 화면에서 지도가 먼저 보이게 한다.
   const [expanded, setExpanded] = useState(false)
+
+  // 드로어가 실제로 동작하는 폭인지 — 닫힌 패널에 inert를 걸지 판단하는 데만 쓴다.
+  // CSS의 768px 분기와 값을 맞춰야 한다.
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches,
+  )
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)')
+    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+
+  // 데스크톱 폭으로 넓어지면 열림 상태를 초기화해 핸들 위치가 어긋나지 않게 한다.
+  useEffect(() => {
+    if (!isMobile) setExpanded(false)
+  }, [isMobile])
+
+  // 드로어가 열려 있을 때 Esc로 닫기 — 모바일 브라우저 외장 키보드/접근성 대응
+  useEffect(() => {
+    if (!expanded) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setExpanded(false) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [expanded])
 
   const track = useMapStore((s) => s.track)
   const setTrack = useMapStore((s) => s.setTrack)
@@ -54,21 +80,21 @@ export function ControlPanel() {
   }, [scores])
 
   return (
-    <aside className={`control-panel ${expanded ? 'control-panel--expanded' : ''}`}>
-      <header className="control-panel__header">
-        <div>
-          <h1>부산 도심하천 수질예보</h1>
-          <p className="control-panel__subtitle-text">온천천 · 동천 · 괴정천 실시간 위험도 예측</p>
-        </div>
-        <button
-          type="button"
-          className="control-panel-toggle"
-          onClick={() => setExpanded((v) => !v)}
-          aria-label={expanded ? '패널 접기' : '패널 펼치기'}
-        >
-          {expanded ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
-        </button>
-      </header>
+    <>
+      <aside
+        id="control-panel"
+        className={`control-panel ${expanded ? 'control-panel--open' : ''}`}
+        // 닫힌 드로어 안의 컨트롤이 스크린리더·탭 이동에 잡히지 않도록.
+        // 데스크톱에서는 CSS가 항상 펼친 상태로 두므로 inert를 걸지 않는다.
+        aria-hidden={isMobile && !expanded}
+        inert={isMobile && !expanded}
+      >
+        <header className="control-panel__header">
+          <div>
+            <h1>부산 도심하천 수질예보</h1>
+            <p className="control-panel__subtitle-text">온천천 · 동천 · 괴정천 실시간 위험도 예측</p>
+          </div>
+        </header>
 
       <div className="control-panel__banner-wrapper">
         <div className="control-panel__btn-row">
@@ -236,7 +262,21 @@ export function ControlPanel() {
           ))}
         </div>
       </section>
-    </aside>
+      </aside>
+
+      {/* 드로어 손잡이 — aside의 overflow-y:auto에 잘리지 않도록 형제로 둔다.
+          모바일에서만 보이고, 열림 상태에 따라 드로어 폭만큼 옆으로 밀린다. */}
+      <button
+        type="button"
+        className={`control-panel-handle ${expanded ? 'control-panel-handle--open' : ''}`}
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+        aria-controls="control-panel"
+        aria-label={expanded ? '패널 닫고 지도 보기' : '패널 열기'}
+      >
+        {expanded ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
+      </button>
+    </>
   )
 }
 
